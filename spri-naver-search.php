@@ -21,7 +21,6 @@ function naver_search($attr){
 		'sort' => 'sim',
 		'class' => 'spri-naver-search',
 		'template' => 'basic',
-		'date' => '',
 	), $attr );
 
 	$url = "http://openapi.naver.com/search?";
@@ -31,6 +30,7 @@ function naver_search($attr){
 	$xml = simplexml_load_string($data);
 
 	$temp = array();
+
 	foreach($xml->channel->item as $data) {
 		$temp[] = $data;
 	}
@@ -43,7 +43,6 @@ function naver_search($attr){
 
 	$html = "<div class='$attrs[class]' >";
 
-	//foreach($xml->channel->item as $data){
 	foreach($temp as $data){
 		$title = (string)$data->title;
 		$link = (string)$data->link;
