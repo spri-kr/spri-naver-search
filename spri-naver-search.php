@@ -4,6 +4,7 @@
 Plugin Name: Spri Naver Search Api
 Version: 1.0
 Author: ungsik.yun@gmail.com
+Description: Shortcode generating specific search result from naver.
 */
 
 // http://developer.naver.com/wiki/pages/News
@@ -11,6 +12,7 @@ Author: ungsik.yun@gmail.com
 /*
  * Key and query is required
  * */
+add_shortcode('spri-naver-search', 'naver_search');
 function naver_search($attr){
 	$attrs =  shortcode_atts( array(
 		'key' => 'c1b406b32dbbbbeee5f2a36ddc14067f', // dummy key
@@ -60,5 +62,4 @@ function naver_search($attr){
 
 }
 
-add_shortcode('spri-naver-search', 'naver_search');
 
