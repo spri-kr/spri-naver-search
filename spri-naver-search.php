@@ -1,7 +1,7 @@
 <?php
 
 /*
-Plugin Name: Spri Naver news Search Api
+Plugin Name: SPRI Naver news Search Api
 Version: 1.0
 Author: ungsik.yun@gmail.com
 Description: Shortcode generating specific search result from naver.
@@ -53,19 +53,19 @@ class spri_naver_news {
 				id INT(11) NOT NULL AUTO_INCREMENT,
 				query_id int(11) NOT NULL,
 				title VARCHAR(50) NOT NULL,
-				originallink VARCHAR(512),
+				originallink VARCHAR(512) NOT NULL,
 				link VARCHAR(512) NOT NULL,
 				description VARCHAR(512) NOT NULL,
 				pubDate VARCHAR(20) NOT NULL,
-				orilink_query_hash CHAR(40) NOT NULL,
+				uniqueness_hash CHAR(40) NOT NULL,
 				PRIMARY KEY (id),
 				index(query_id, pubDate),
 				index(query_id),
 				index(title),
 				index(link),
-				index(link_hash),
+				index(uniqueness_hash),
 				index(pubDate),
-				UNIQUE (orilink_query_hash)
+				UNIQUE (uniqueness_hash)
 				) $charset_collate;
 				";
 
@@ -88,7 +88,8 @@ class spri_naver_news {
 				id int(11) NOT NULL AUTO_INCREMENT,
 				status VARCHAR(20) NOT NULL,
 
-				PRIMARY KEY (status)
+				PRIMARY KEY (id),
+				INDEX (status)
 				) $charset_collate;
 
 				INSERT INTO $this->status_table
@@ -180,7 +181,7 @@ class spri_naver_news {
 
 			$insert_sql = $wpdb->prepare( "
 				INSERT INTO $this->article_table
-				(title, originallink, link, description, pubDate, query_id, orilink_query_hash)
+				(title, originallink, link, description, pubDate, query_id, uniqueness_hash)
 				VALUES
 				(%s, %s, %s, %s, %s, %d, SHA1(%s));",
 				array(
@@ -190,17 +191,17 @@ class spri_naver_news {
 					$article->description,
 					$pubDate->format( 'Y-m-d H:i:s' ),
 					(int) $query_id->id,
-					$article->originallink . (string)$query_id->id,
+					$article->title . (string) $query_id->id . $article->pubDate,
 				)
 			);
 			$wpdb->query( $insert_sql );
 			$wpdb->show_errors();
 		}
-		//	set query status to maintenance
-		//return var_dump($s);
+		//	TODO set query status to maintenance
 	}
 
 	function naver_search( $attr ) {
+		// Set default value
 		$attr = shortcode_atts( array(
 			'key'      => 'c1b406b32dbbbbeee5f2a36ddc14067f', // dummy key
 			'query'    => 'SPRI',
@@ -210,53 +211,19 @@ class spri_naver_news {
 			'sort'     => 'sim',
 			'class'    => 'spri-naver-search',
 			'template' => 'basic',
-		), $attr );
-
-		return $this->new_crawl( $attr );
+		),
+			$attr );
 
 		//check if search is first time
-		//	query is in db
-		if ( $this->is_exist_query( $attr['query'] ) ) {
-
-			$this->get_news_articles_by_query();
-
-		} //	query is not in db
-		else {
-
+		if ( ! $this->is_exist_query( $attr['query'] ) ) {
+			//	query is not in db
 			$this->insert_query( $attr['query'] );
-
-			return $this->new_crawl( $attr );
-
+			$this->new_crawl( $attr );
 		}
 
+		$articles = $this->get_news_articles_by_query( $attr['query'] );
 
-		$xml  = $this->get_naver_xml( $attr );
-		$temp = array();
-
-		foreach ( $xml->channel->item as $data ) {
-			$temp[] = $data;
-		}
-		usort( $temp, function ( $a, $b ) {
-			$a_date = date_create_from_format( 'D, d M Y H:i:s T', $a->pubDate );
-			$b_date = date_create_from_format( 'D, d M Y H:i:s T', $b->pubDate );
-
-			return $a_date < $b_date;
-		} );
-
-		$html = "<div class='$attr[class]' >";
-
-		foreach ( $temp as $data ) {
-			$title        = (string) $data->title;
-			$link         = (string) $data->link;
-			$originallink = (string) $data->originallink;
-			$description  = (string) $data->description;
-			$pubDate      = date_create_from_format( 'D, d M Y H:i:s T', $data->pubDate );
-
-			require( plugin_dir_path( __FILE__ ) . "template/" . $attr['template'] . ".php" );
-
-		}
-
-		$html .= "</div>";
+		$html = $this->generate_html( $attr, $articles );
 
 		return $html;
 	}
@@ -265,11 +232,14 @@ class spri_naver_news {
 		global $wpdb;
 
 		$q_hash = sha1( $q );
-		$sql    = "select exists(select * from wp_spri_naver_news_query where query_hash = '$q_hash') AS exist";
+		$sql    = "select exists
+					(select * from
+					wp_spri_naver_news_query
+					where query_hash = '$q_hash') AS exist";
+
 		$r      = $wpdb->get_row( $sql );
 
 		return $r->exist;
-		//$wpdb->get
 	}
 
 	function insert_query( $q ) {
@@ -302,8 +272,27 @@ class spri_naver_news {
 		return $xml;
 	}
 
-	public function get_news_articles_by_query() {
+	protected function get_news_articles_by_query() {
 		global $wpdb;
+	}
+
+	protected function generate_html( $attr, $temp ) {
+		$html = "<div class='$attr[class]' >";
+
+		foreach ( $temp as $data ) {
+			$title        = (string) $data->title;
+			$link         = (string) $data->link;
+			$originallink = (string) $data->originallink;
+			$description  = (string) $data->description;
+			$pubDate      = date_create_from_format( 'D, d M Y H:i:s T', $data->pubDate );
+
+			require( plugin_dir_path( __FILE__ ) . "template/" . $attr['template'] . ".php" );
+
+		}
+
+		$html .= "</div>";
+
+		return $html;
 	}
 
 
