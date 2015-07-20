@@ -6,6 +6,10 @@ How to Use
 
 [spri-naver-search key='your naver api key' query='your search term']
 
+you can use detailed search by query [rule](https://help.naver.com/support/contents/contents.nhn?serviceNo=606&categoryNo=1911).
+
+wrapping query with single quote(`'`) like `query='"this text must be in result"'`.
+
 
 ### available attr
 You can find attr reference from [Reference]
