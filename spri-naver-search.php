@@ -23,12 +23,13 @@ class spri_naver_news {
 
 		global $wpdb;
 		$this->article_table = $wpdb->prefix . "spri_naver_news_article";
-		$this->query_table   = $wpdb->prefix . "spri_naver_news_query";
-		$this->status_table  = $wpdb->prefix . "spri_naver_news_status";
+		$this->query_table = $wpdb->prefix . "spri_naver_news_query";
+		$this->status_table = $wpdb->prefix . "spri_naver_news_status";
 
 
 		add_shortcode( 'spri-naver-search', array( $this, 'naver_search' ) );
 		add_action( 'spri_naver_cron_job', array( $this, 'do_cron_job' ) );
+		add_filter( 'query_vars', array( $this, 'url_query_filter' ) );
 
 		register_activation_hook( __FILE__, array( $this, 'activation' ) );
 		register_deactivation_hook( __FILE__, array( $this, 'deactivation' ) );
@@ -119,10 +120,10 @@ class spri_naver_news {
 
 		global $wpdb;
 
-		$sql              = $wpdb->prepare( "
-			select * from %s where
-		",
-			array() );
+		//$sql = $wpdb->prepare( "
+		//	SELECT * FROM %s WHERE
+		//",
+		//	array() );
 		$query_and_status = $wpdb->get_results( '' );
 		//
 		//$this->maintenance_crawl();
@@ -148,11 +149,12 @@ class spri_naver_news {
 		$wpdb->show_errors();
 
 		$attr['display'] = '100';
-		$attr['sort']    = 'sim';
+		$attr['sort'] = 'sim';
 		unset( $attr['class'] );
 		unset( $attr['template'] );
 
-		$xml        = $this->get_naver_xml( $attr );
+		$xml = $this->get_naver_xml( $attr );
+
 		$total_page = $xml->channel->total / 100;
 		if ( $total_page > 10 ) {
 			$total_page = 10;
@@ -161,22 +163,19 @@ class spri_naver_news {
 		$articles = array();
 		for ( $i = 1; $i <= $total_page; $i ++ ) {
 			$attr['start'] = $attr['display'] * $i;
-			$t             = $this->get_naver_xml( $attr );
+			$t = $this->get_naver_xml( $attr );
 			foreach ( $t->channel->item as $article ) {
-
 				array_push( $articles,
 					$article
 				);
 			}
 		}
 
-		$q_hash       = sha1( $attr['query'] );
+		$q_hash = sha1( $attr['query'] );
 		$query_id_sql = "select id from $this->query_table where query_hash = '$q_hash';";
-		$query_id     = $wpdb->get_row( $query_id_sql );
+		$query_id = $wpdb->get_row( $query_id_sql );
 
-		$s = "";
 		foreach ( $articles as $article ) {
-
 			$pubDate = date_create_from_format( 'D, d M Y H:i:s T', $article->pubDate );
 
 			$insert_sql = $wpdb->prepare( "
@@ -194,9 +193,11 @@ class spri_naver_news {
 					$article->title . (string) $query_id->id . $article->pubDate,
 				)
 			);
+
 			$wpdb->query( $insert_sql );
-			$wpdb->show_errors();
+			//$wpdb->show_errors();
 		}
+
 		//	TODO set query status to maintenance
 	}
 
@@ -221,7 +222,15 @@ class spri_naver_news {
 			$this->new_crawl( $attr );
 		}
 
-		$articles = $this->get_news_articles_by_query( $attr['query'] );
+		// Check page parameter.
+		// Get article by parameter
+		global $wp_query;
+		if ( isset( $wp_query->query_vars['spri_y_m'] ) ) {
+			$yearMonth = $wp_query->query_vars['spri_y_m'];
+			$articles = $this->retrive_articles( $attr['query'], $yearMonth );
+		} else {
+			$articles = $this->retrive_articles( $attr['query'] );
+		}
 
 		$html = $this->generate_html( $attr, $articles );
 
@@ -232,16 +241,19 @@ class spri_naver_news {
 		global $wpdb;
 
 		$q_hash = sha1( $q );
-		$sql    = "select exists
+		$sql = "select exists
 					(select * from
 					wp_spri_naver_news_query
 					where query_hash = '$q_hash') AS exist";
 
-		$r      = $wpdb->get_row( $sql );
+		$r = $wpdb->get_row( $sql );
 
 		return $r->exist;
 	}
 
+	/**
+	 * @param $q query be resisted to crawl
+	 */
 	function insert_query( $q ) {
 		global $wpdb;
 
@@ -272,22 +284,28 @@ class spri_naver_news {
 		return $xml;
 	}
 
-	protected function get_news_articles_by_query() {
+	protected function retrive_articles( $q, $ym = "" ) {
 		global $wpdb;
+
+		$query_id = $this->get_query_id_from_query( $q );
+
+		$articles = $wpdb->get_results( "select * from $this->article_table where query_id = {$query_id}" );
+
+		return $articles;
 	}
 
-	protected function generate_html( $attr, $temp ) {
+	protected function generate_html( $attr, $articles ) {
 		$html = "<div class='$attr[class]' >";
 
-		foreach ( $temp as $data ) {
-			$title        = (string) $data->title;
-			$link         = (string) $data->link;
-			$originallink = (string) $data->originallink;
-			$description  = (string) $data->description;
-			$pubDate      = date_create_from_format( 'D, d M Y H:i:s T', $data->pubDate );
 
+		foreach ( $articles as $item ) {
+			$title = (string) $item->title;
+			$link = (string) $item->link;
+			$originallink = (string) $item->originallink;
+			$description = (string) $item->description;
+			$pubDate = (string)$item->pubDate;
 			require( plugin_dir_path( __FILE__ ) . "template/" . $attr['template'] . ".php" );
-
+			$html .= $template;
 		}
 
 		$html .= "</div>";
@@ -295,6 +313,28 @@ class spri_naver_news {
 		return $html;
 	}
 
+	function url_query_filter( $q ) {
+		$q[] = 'spri_y_m';
+
+		return $q;
+	}
+
+	/**
+	 * @param $q
+	 *
+	 * @return int $id query id from query string
+	 */
+	protected function get_query_id_from_query( $q ) {
+		global $wpdb;
+
+		//escaping quotes from query string
+		$q = addslashes( $q );
+		$query_id = $wpdb->get_row(
+			"SELECT id FROM $this->query_table WHERE query = '{$q}'"
+		);
+
+		return (int) $query_id->id;
+	}
 
 }
 
