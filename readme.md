@@ -6,9 +6,9 @@ How to Use
 
 [spri-naver-search key='your naver api key' query='your search term']
 
-you can use detailed search by query [rule](https://help.naver.com/support/contents/contents.nhn?serviceNo=606&categoryNo=1911).
+you can use conditional search by query [rule](https://help.naver.com/support/contents/contents.nhn?serviceNo=606&categoryNo=1911).
 
-wrapping query with single quote(`'`) like `query='"this text must be in result"'`.
+wrapping query with single quote(`'`) like `query='"this text must be in result"'`. notice that only double quote has effect on search. single quoted string treated like normal string.
 
 
 ### available attr
@@ -23,7 +23,7 @@ query| word or words with quote want to search
 target| default is 'news'. you can find available parameters from [Reference] 
 display| (optional) default is 10. determine how many results be displayed. max is 100.
 start| (optional) default is 1. set starting page of search results. max is 1000.
-sort|(optional) default is 'date'. set sorting method of results. **date** will sort result based on date. **sim** will sore result based on accuracy. 
+sort|(optional) default is 'date'. set sorting method of results. **date** will sort result based on date. **sim** will sort result based on accuracy. 
 class| (optional) default is 'spri-naver-search' set the class of template.
 template| (optional) default is 'basic'. set the template of displaying result.
 
