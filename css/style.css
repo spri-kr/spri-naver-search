@@ -1,0 +1,9 @@
+.spri-naver-search .link {
+    color: black;
+    float: left;
+    line-height: 150%;
+    border-bottom: solid;
+    margin: 3px;
+    /*width: 100px;*/
+    text-align: center;
+}
