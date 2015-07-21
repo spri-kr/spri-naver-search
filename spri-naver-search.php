@@ -29,6 +29,8 @@ class spri_naver_news {
 
 		add_shortcode( 'spri-naver-search', array( $this, 'naver_search' ) );
 		add_action( 'spri_naver_cron_job', array( $this, 'do_cron_job' ) );
+		add_action( 'wp_head', array( $this, 'load_css' ) );
+
 		add_filter( 'query_vars', array( $this, 'url_query_filter' ) );
 
 		register_activation_hook( __FILE__, array( $this, 'activation' ) );
@@ -161,14 +163,15 @@ class spri_naver_news {
 		}
 
 		$articles = array();
+		$attr['start'] = 1;
 		for ( $i = 1; $i <= $total_page; $i ++ ) {
-			$attr['start'] = $attr['display'] * $i;
 			$t = $this->get_naver_xml( $attr );
 			foreach ( $t->channel->item as $article ) {
 				array_push( $articles,
 					$article
 				);
 			}
+			$attr['start'] = $attr['display'] * $i;
 		}
 
 		$q_hash = sha1( $attr['query'] );
@@ -201,7 +204,8 @@ class spri_naver_news {
 		//	TODO set query status to maintenance
 	}
 
-	function naver_search( $attr ) {
+	public function naver_search( $attr ) {
+
 		// Set default value
 		$attr = shortcode_atts( array(
 			'key'      => 'c1b406b32dbbbbeee5f2a36ddc14067f', // dummy key
@@ -221,18 +225,15 @@ class spri_naver_news {
 			$this->insert_query( $attr['query'] );
 			$this->new_crawl( $attr );
 		}
+		$q_id = $this->get_query_id_from_query( $attr['query'] );
 
 		// Check page parameter.
 		// Get article by parameter
-		global $wp_query;
-		if ( isset( $wp_query->query_vars['spri_y_m'] ) ) {
-			$yearMonth = $wp_query->query_vars['spri_y_m'];
-			$articles = $this->retrive_articles( $attr['query'], $yearMonth );
-		} else {
-			$articles = $this->retrive_articles( $attr['query'] );
-		}
+		$articles = $this->retrive_articles( $q_id );
 
+		// building html part
 		$html = $this->generate_html( $attr, $articles );
+		$html .= $this->append_year_month_link( $q_id );
 
 		return $html;
 	}
@@ -263,10 +264,7 @@ class spri_naver_news {
 			VALUE
 			(%s, SHA1(%s))
 		",
-			array(
-				$q,
-				$q
-			)
+			array( $q, $q )
 		);
 
 		$wpdb->query( $sql );
@@ -284,26 +282,44 @@ class spri_naver_news {
 		return $xml;
 	}
 
-	protected function retrive_articles( $q, $ym = "" ) {
+	protected function retrive_articles( $q_id ) {
 		global $wpdb;
+		global $wp_query;
 
-		$query_id = $this->get_query_id_from_query( $q );
+		//TODO sanitize $ym
 
-		$articles = $wpdb->get_results( "select * from $this->article_table where query_id = {$query_id}" );
+		if ( isset( $wp_query->query_vars['ym'] ) ) {
+			$ym = $wp_query->query_vars['ym'];
+		} else {
+			date_default_timezone_set( "Asia/Seoul" );
+			$ym = date( "Ym" );
+		}
+
+		$sql = "select *
+				from $this->article_table
+				where query_id = {$q_id}
+				and date_format(pubDate, '%Y%m') = {$ym}
+				order by pubDate desc";
+
+		$articles = $wpdb->get_results( $sql );
 
 		return $articles;
 	}
 
 	protected function generate_html( $attr, $articles ) {
-		$html = "<div class='$attr[class]' >";
 
+		$article_count = count( $articles );
+
+		$html = "<p>{$article_count} 개</p>";
+
+		$html .= "<div class='$attr[class]' >";
 
 		foreach ( $articles as $item ) {
 			$title = (string) $item->title;
 			$link = (string) $item->link;
 			$originallink = (string) $item->originallink;
 			$description = (string) $item->description;
-			$pubDate = (string)$item->pubDate;
+			$pubDate = (string) $item->pubDate;
 			require( plugin_dir_path( __FILE__ ) . "template/" . $attr['template'] . ".php" );
 			$html .= $template;
 		}
@@ -314,7 +330,7 @@ class spri_naver_news {
 	}
 
 	function url_query_filter( $q ) {
-		$q[] = 'spri_y_m';
+		$q[] = 'ym';
 
 		return $q;
 	}
@@ -335,6 +351,53 @@ class spri_naver_news {
 
 		return (int) $query_id->id;
 	}
+
+	/**
+	 * @param int $q_id query id from database
+	 */
+	private function append_year_month_link( $q_id ) {
+
+		$ym_data = $this->get_year_month_data_by_query_id( $q_id );
+
+		$buttons = "<div class='spri-naver-search'>";
+
+		foreach ( $ym_data as $item ) {
+			$buttons .=
+<<<HTML
+<a href="?ym={$item->ym}" class="link">{$item->y}년 {$item->m}월</a>
+HTML;
+		}
+
+		$buttons .= "</div>";
+
+		return ( $buttons );
+	}
+
+	function load_css() {
+		$plugin_url = plugin_dir_url( __FILE__ );
+
+		wp_enqueue_style( 'spri-naver-style', $plugin_url . 'css/style.css' );
+	}
+
+	private function get_year_month_data_by_query_id( $q_id ) {
+
+		global $wpdb;
+
+		$sql =
+<<<SQL
+SELECT date_format(pubDate, '%Y%m') AS ym,
+YEAR(pubDate) as y,
+month(pubDate) as m,
+count(*) as c
+FROM wp_spri_naver_news_article
+WHERE query_id = {$q_id}
+GROUP BY ym
+ORDER BY ym DESC;
+SQL;
+
+		return $wpdb->get_results( $sql );
+	}
+
 
 }
 
