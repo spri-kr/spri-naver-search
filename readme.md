@@ -4,12 +4,15 @@ Spri Naver search
 How to Use
 ----
 
-[spri-naver-search key='your naver api key' query='your search term']
+[spri-naver-search query="your search term"]
 
 you can use conditional search by query [rule](https://help.naver.com/support/contents/contents.nhn?serviceNo=606&categoryNo=1911).
 
 wrapping query with single quote(`'`) like `query='"this text must be in result"'`. notice that only double quote has effect on search. single quoted string treated like normal string.
 
+### initial setup
+
+after plugin activation, you should fill out API key option value at `General>SPRI Naver Search`  
 
 ### available attr
 You can find attr reference from [Reference]
