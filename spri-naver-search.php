@@ -39,6 +39,7 @@ class spri_naver_news {
 		// filters
 		add_filter( 'query_vars', array( $this, 'url_query_filter' ) );
 		add_filter( 'cron_schedules', array( $this, 'add_custom_cron_interval' ) );
+		add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'add_plugin_setting_link' ) );
 
 		// plugin activation and deactivation
 		register_activation_hook( __FILE__, array( $this, 'activation' ) );
@@ -461,6 +462,14 @@ SQL;
 		}
 	}
 
+	function add_plugin_setting_link( $links ) {
+		$setting_link = '<a href="' . admin_url( 'options-general.php?page=spri-naver-search' ) . '">' . __( Settings ) . '</a>';
+		$t = '<a href="google.com">ddddddd</a>';
+
+		//$setting_link = "asd";
+		return array_merge( $links, array( $setting_link ) );
+		//return $links;
+	}
 
 }
 
