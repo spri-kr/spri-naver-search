@@ -36,7 +36,7 @@ class spri_naver_option {
 
         register_setting( 'spri_naver_option_group', 'spri_naver_option_name' );
 
-        add_settings_section( 'spri_naver_option_section', 'Attrs', array( $this, 'attr_page' ), 'spri-naver-search' );
+        add_settings_section( 'spri_naver_option_section', 'Attributes', array( $this, 'attr_section_display' ), 'spri-naver-search' );
 
         add_settings_field(
                 'api_key',
@@ -48,7 +48,11 @@ class spri_naver_option {
 
     }
 
-    function attr_page() {
+    function attr_section_display() {
+        echo <<< EOT
+        Set default options
+EOT;
+
     }
 
     function plugin_setting_string() {
