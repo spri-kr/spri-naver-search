@@ -147,60 +147,15 @@ INDEX (status)
 
 	}
 
-	/**
-	 * Maintenance status
-	 * query have this status are already crawled past articles.
-	 * So crawl daily updates after whole article crawl.
-	 */
-	function maintenance_crawl( $q ) {
-		global $wpdb;
-
-		$attr = array(
-			'key'     => $this->options['api_key'],
-			'query'   => $q->query,
-			'target'  => 'news',
-			'display' => '100',
-			'start'   => '1',
-			'sort'    => 'sim',
+	function add_custom_cron_interval( $schedules ) {
+		// $schedules stores all recurrence schedules within WordPress
+		$schedules['ten_seconds'] = array(
+			'interval' => 10,  // Number of seconds, 600 in 10 minutes
+			'display'  => 'Once Every 10 seconds'
 		);
 
-		$xml = $this->get_naver_xml( $attr );
-
-		$total_page = $xml->channel->total / 100;
-		if ( $total_page > 10 ) {
-			$total_page = 10;
-		}
-
-		$articles = $this->get_search_results_from_naver( $attr, $total_page );
-
-		$this->insert_articles( $q->id, $articles );
-	}
-
-	/**
-	 * New status
-	 * new to crawl. query have this status does not have any articles on database
-	 */
-	function new_crawl( $attr ) {
-		global $wpdb;
-		//$wpdb->show_errors();
-
-		$attr['display'] = '100';
-		$attr['sort'] = 'sim';
-
-		$xml = $this->get_naver_xml( $attr );
-
-		$total_page = $xml->channel->total / 100;
-		if ( $total_page > 10 ) {
-			$total_page = 10;
-		}
-
-		$articles = $this->get_search_results_from_naver( $attr, $total_page );
-
-		$q_hash = sha1( $attr['query'] );
-		$query_id_sql = "select id from $this->query_table where query_hash = '$q_hash';";
-		$query_id = $wpdb->get_row( $query_id_sql );
-
-		$this->insert_articles( $query_id->id, $articles );
+		// Return our newly added schedule to be merged into the others
+		return (array) $schedules;
 	}
 
 	public function naver_search( $attr ) {
@@ -239,169 +194,33 @@ INDEX (status)
 		return $html;
 	}
 
-	function is_exist_query( $q ) {
-		global $wpdb;
-
-		$q_hash = sha1( $q );
-		$sql = "select exists
-					(select * from
-					wp_spri_naver_news_query
-					where query_hash = '$q_hash') AS exist";
-
-		$r = $wpdb->get_row( $sql );
-
-		return $r->exist;
-	}
-
 	/**
-	 * @param $q query be resisted to crawl
+	 * Maintenance status
+	 * query have this status are already crawled past articles.
+	 * So crawl daily updates after whole article crawl.
 	 */
-	function insert_query( $q ) {
+	function maintenance_crawl( $q ) {
 		global $wpdb;
 
-		$sql = $wpdb->prepare( "
-			INSERT INTO $this->query_table
-			(query, query_hash)
-			VALUE
-			(%s, SHA1(%s))
-		",
-			array( $q, $q )
+		$attr = array(
+			'key'     => $this->options['api_key'],
+			'query'   => $q->query,
+			'target'  => 'news',
+			'display' => '100',
+			'start'   => '1',
+			'sort'    => 'sim',
 		);
 
-		$wpdb->query( $sql );
+		$xml = $this->get_naver_xml( $attr );
 
-	}
-
-	public function get_naver_xml( $attr ) {
-
-		//Get xml content
-		$url = "http://openapi.naver.com/search?";
-		$url .= http_build_query( $attr );
-
-		$xml = simplexml_load_string( file_get_contents( $url ) );
-
-		return $xml;
-	}
-
-	protected function retrive_articles( $q_id ) {
-		global $wpdb;
-		global $wp_query;
-
-		//TODO sanitize $ym
-
-		if ( isset( $wp_query->query_vars['ym'] ) ) {
-			$ym = $wp_query->query_vars['ym'];
-		} else {
-			date_default_timezone_set( "Asia/Seoul" );
-			$ym = date( "Ym" );
+		$total_page = $xml->channel->total / 100;
+		if ( $total_page > 10 ) {
+			$total_page = 10;
 		}
 
-		$sql = "select *
-				from $this->article_table
-				where query_id = {$q_id}
-				and date_format(pubDate, '%Y%m') = {$ym}
-				order by pubDate desc";
+		$articles = $this->get_search_results_from_naver( $attr, $total_page );
 
-		$articles = $wpdb->get_results( $sql );
-
-		return $articles;
-	}
-
-	protected function generate_html( $attr, $articles ) {
-
-		$article_count = count( $articles );
-
-		$html = "<p>{$article_count} 개</p>";
-
-		$html .= "<div class='$attr[class]' >";
-
-		foreach ( $articles as $item ) {
-			require( plugin_dir_path( __FILE__ ) . "template/" . $attr['template'] . ".php" );
-			$html .= $template;
-		}
-
-		$html .= "</div>";
-
-		return $html;
-	}
-
-	function url_query_filter( $q ) {
-		$q[] = 'ym';
-
-		return $q;
-	}
-
-	/**
-	 * @param $q
-	 *
-	 * @return int $id query id from query string
-	 */
-	protected function get_query_id_from_query( $q ) {
-		global $wpdb;
-
-		//escaping quotes from query string
-		$q = addslashes( $q );
-		$query_id = $wpdb->get_row(
-			"SELECT id FROM $this->query_table WHERE query = '{$q}'"
-		);
-
-		return (int) $query_id->id;
-	}
-
-	/**
-	 * @param int $q_id query id from database
-	 */
-	private function append_year_month_link( $q_id ) {
-
-		$ym_data = $this->get_year_month_data_by_query_id( $q_id );
-
-		$buttons = "<div class='spri-naver-search'>";
-
-		foreach ( $ym_data as $item ) {
-			$buttons .=
-				<<<HTML
-				<a href="?ym={$item->ym}" class="link">{$item->y}년 {$item->m}월</a>
-HTML;
-		}
-
-		$buttons .= "</div>";
-
-		return ( $buttons );
-	}
-
-	function load_css() {
-		$plugin_url = plugin_dir_url( __FILE__ );
-
-		wp_enqueue_style( 'spri-naver-style', $plugin_url . 'css/style.css' );
-	}
-
-	private function get_year_month_data_by_query_id( $q_id ) {
-
-		global $wpdb;
-
-		$sql = <<<SQL
-			SELECT date_format(pubDate, '%Y%m') AS ym,
-YEAR(pubDate) as y,
-month(pubDate) as m,
-count(*) as c
-FROM wp_spri_naver_news_article
-WHERE query_id = {$q_id}
-GROUP BY ym
-ORDER BY ym DESC;
-SQL;
-
-		return $wpdb->get_results( $sql );
-	}
-
-	function add_custom_cron_interval( $schedules ) {
-		// $schedules stores all recurrence schedules within WordPress
-		$schedules['ten_seconds'] = array(
-			'interval' => 10,  // Number of seconds, 600 in 10 minutes
-			'display'  => 'Once Every 10 seconds'
-		);
-
-		// Return our newly added schedule to be merged into the others
-		return (array) $schedules;
+		$this->insert_articles( $q->id, $articles );
 	}
 
 	private function get_query_list() {
@@ -412,23 +231,31 @@ SQL;
 		" );
 	}
 
-	protected function get_search_results_from_naver( $attr, $total_page ) {
-		$articles = array();
-		$attr['start'] = 1;
-		for ( $i = 1; $i <= $total_page; $i ++ ) {
-			$t = $this->get_naver_xml( $attr );
-			foreach ( $t->channel->item as $article ) {
-				if ( $article->originallink == "" ) {
-					$article->originallink = $article->link;
-				}
-				array_push( $articles,
-					$article
-				);
-			}
-			$attr['start'] = $attr['display'] * $i;
+	/**
+	 * New status
+	 * new to crawl. query have this status does not have any articles on database
+	 */
+	function new_crawl( $attr ) {
+		global $wpdb;
+		//$wpdb->show_errors();
+
+		$attr['display'] = '100';
+		$attr['sort'] = 'sim';
+
+		$xml = $this->get_naver_xml( $attr );
+
+		$total_page = $xml->channel->total / 100;
+		if ( $total_page > 10 ) {
+			$total_page = 10;
 		}
 
-		return $articles;
+		$articles = $this->get_search_results_from_naver( $attr, $total_page );
+
+		$q_hash = sha1( $attr['query'] );
+		$query_id_sql = "select id from $this->query_table where query_hash = '$q_hash';";
+		$query_id = $wpdb->get_row( $query_id_sql );
+
+		$this->insert_articles( $query_id->id, $articles );
 	}
 
 	/**
@@ -460,6 +287,179 @@ SQL;
 
 			$wpdb->query( $insert_sql );
 		}
+	}
+
+	function is_exist_query( $q ) {
+		global $wpdb;
+
+		$q_hash = sha1( $q );
+		$sql = "select exists
+					(select * from
+					wp_spri_naver_news_query
+					where query_hash = '$q_hash') AS exist";
+
+		$r = $wpdb->get_row( $sql );
+
+		return $r->exist;
+	}
+
+	public function get_naver_xml( $attr ) {
+
+		//Get xml content
+		$url = "http://openapi.naver.com/search?";
+		$url .= http_build_query( $attr );
+
+		$xml = simplexml_load_string( file_get_contents( $url ) );
+
+		return $xml;
+	}
+
+	protected function get_search_results_from_naver( $attr, $total_page ) {
+		$articles = array();
+		$attr['start'] = 1;
+		for ( $i = 1; $i <= $total_page; $i ++ ) {
+			$t = $this->get_naver_xml( $attr );
+			foreach ( $t->channel->item as $article ) {
+				if ( $article->originallink == "" ) {
+					$article->originallink = $article->link;
+				}
+				array_push( $articles,
+					$article
+				);
+			}
+			$attr['start'] = $attr['display'] * $i;
+		}
+
+		return $articles;
+	}
+
+	/**
+	 * @param $q query be resisted to crawl
+	 */
+	function insert_query( $q ) {
+		global $wpdb;
+
+		$sql = $wpdb->prepare( "
+			INSERT INTO $this->query_table
+			(query, query_hash)
+			VALUE
+			(%s, SHA1(%s))
+		",
+			array( $q, $q )
+		);
+
+		$wpdb->query( $sql );
+
+	}
+
+	/**
+	 * @param $q
+	 *
+	 * @return int $id query id from query string
+	 */
+	protected function get_query_id_from_query( $q ) {
+		global $wpdb;
+
+		//escaping quotes from query string
+		$q = addslashes( $q );
+		$query_id = $wpdb->get_row(
+			"SELECT id FROM $this->query_table WHERE query = '{$q}'"
+		);
+
+		return (int) $query_id->id;
+	}
+
+	protected function retrive_articles( $q_id ) {
+		global $wpdb;
+		global $wp_query;
+
+		//TODO sanitize $ym
+
+		if ( isset( $wp_query->query_vars['ym'] ) ) {
+			$ym = $wp_query->query_vars['ym'];
+		} else {
+			date_default_timezone_set( "Asia/Seoul" );
+			$ym = date( "Ym" );
+		}
+
+		$sql = "select *
+				from $this->article_table
+				where query_id = {$q_id}
+				and date_format(pubDate, '%Y%m') = {$ym}
+				order by pubDate desc";
+
+		$articles = $wpdb->get_results( $sql );
+
+		return $articles;
+	}
+
+	function load_css() {
+		$plugin_url = plugin_dir_url( __FILE__ );
+
+		wp_enqueue_style( 'spri-naver-style', $plugin_url . 'css/style.css' );
+	}
+
+	protected function generate_html( $attr, $articles ) {
+
+		$article_count = count( $articles );
+
+		$html = "<p>{$article_count} 개</p>";
+
+		$html .= "<div class='$attr[class]' >";
+
+		foreach ( $articles as $item ) {
+			require( plugin_dir_path( __FILE__ ) . "template/" . $attr['template'] . ".php" );
+			$html .= $template;
+		}
+
+		$html .= "</div>";
+
+		return $html;
+	}
+
+	/**
+	 * @param int $q_id query id from database
+	 */
+	private function append_year_month_link( $q_id ) {
+
+		$ym_data = $this->get_year_month_data_by_query_id( $q_id );
+
+		$buttons = "<div class='spri-naver-search'>";
+
+		foreach ( $ym_data as $item ) {
+			$buttons .=
+				<<<HTML
+				<a href="?ym={$item->ym}" class="link">{$item->y}년 {$item->m}월</a>
+HTML;
+		}
+
+		$buttons .= "</div>";
+
+		return ( $buttons );
+	}
+
+	function url_query_filter( $q ) {
+		$q[] = 'ym';
+
+		return $q;
+	}
+
+	private function get_year_month_data_by_query_id( $q_id ) {
+
+		global $wpdb;
+
+		$sql = <<<SQL
+			SELECT date_format(pubDate, '%Y%m') AS ym,
+YEAR(pubDate) as y,
+month(pubDate) as m,
+count(*) as c
+FROM wp_spri_naver_news_article
+WHERE query_id = {$q_id}
+GROUP BY ym
+ORDER BY ym DESC;
+SQL;
+
+		return $wpdb->get_results( $sql );
 	}
 
 	function add_plugin_setting_link( $links ) {
