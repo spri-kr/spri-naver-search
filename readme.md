@@ -4,7 +4,7 @@ Spri Naver search
 How to Use
 ----
 
-[spri-naver-search query="your search term"]
+`[spri-naver-search query="your search term"]`
 
 you can use conditional search by query [rule](https://help.naver.com/support/contents/contents.nhn?serviceNo=606&categoryNo=1911).
 
@@ -34,8 +34,8 @@ template| (optional) default is 'basic'. set the template of displaying result.
 
 you edit or add template in __template__ directory. in the template file, next parameters be used.
 
-- $title: title of result .
-- $link: link to result on naver.
-- $originallink: link to original news(or service) provider
-- $description: short description of result
-- $pubDate: published date of result
+- `$title`: title of result .
+- `$link`: link to result on naver.
+- `$originallink`: link to original news(or service) provider
+- `$description`: short description of result
+- `$pubDate`: published date of result
