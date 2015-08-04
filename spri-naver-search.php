@@ -170,24 +170,35 @@ INDEX (status)
 			'sort'     => 'sim',
 			'class'    => 'spri-naver-search',
 			'template' => 'basic',
+			'is_crawl' => 'n'
 		),
 			$attr );
 
-		//check if search is first time
-		if ( ! $this->is_exist_query( $attr['query'] ) ) {
-			//	query is not in db
-			$this->insert_query( $attr['query'] );
-			$this->new_crawl( $attr );
+		if ( $attr['is_crawl'] == 'y' ) {
+			//check if search is first time
+			if ( ! $this->is_exist_query( $attr['query'] ) ) {
+				//	query is not in db
+				$this->insert_query( $attr['query'] );
+				$this->new_crawl( $attr );
+			}
+			$q_id = $this->get_query_id_from_query( $attr['query'] );
+
+			// Check page parameter and Get article by parameter
+			$articles = $this->retrive_articles( $q_id );
+
+			// building html part
+			$html = $this->generate_year_month_navigation( $q_id );
+			$html .= $this->generate_html( $attr, $articles );
+		} else {
+			$xml = $this->get_naver_xml( $attr );
+			$articles = $this->extract_articles_from_xml( $xml );
+
+			usort($articles, function($a, $b){
+				return strtotime($a->pubDate) < strtotime($b->pubDate);
+			});
+
+			$html = $this->generate_html( $attr, $articles );
 		}
-		$q_id = $this->get_query_id_from_query( $attr['query'] );
-
-		// Check page parameter.
-		// Get article by parameter
-		$articles = $this->retrive_articles( $q_id );
-
-		// building html part
-		$html = $this->generate_year_month_navigation( $q_id );
-		$html .= $this->generate_html( $attr, $articles );
 
 		//TODO "Show more article"
 
@@ -315,18 +326,10 @@ INDEX (status)
 	}
 
 	protected function get_search_results_from_naver( $attr, $total_page ) {
-		$articles = array();
 		$attr['start'] = 1;
 		for ( $i = 1; $i <= $total_page; $i ++ ) {
-			$t = $this->get_naver_xml( $attr );
-			foreach ( $t->channel->item as $article ) {
-				if ( $article->originallink == "" ) {
-					$article->originallink = $article->link;
-				}
-				array_push( $articles,
-					$article
-				);
-			}
+			$xml = $this->get_naver_xml( $attr );
+			$articles = $this->extract_articles_from_xml( $xml );
 			$attr['start'] = $attr['display'] * $i;
 		}
 
@@ -362,8 +365,12 @@ INDEX (status)
 
 		//escaping quotes from query string
 		$q = addslashes( $q );
+		$sql = <<<SQL
+SELECT * FROM $this->query_table WHERE query = '{$q}';
+SQL;
+
 		$query_id = $wpdb->get_row(
-			"SELECT id FROM $this->query_table WHERE query = '{$q}'"
+			$sql
 		);
 
 		return (int) $query_id->id;
@@ -378,14 +385,18 @@ INDEX (status)
 		if ( isset( $wp_query->query_vars['ym'] ) ) {
 			$ym = $wp_query->query_vars['ym'];
 		} else {
-			date_default_timezone_set( "Asia/Seoul" );
-			$ym = date( "Ym" );
+			$ym_sql = "select date_format(pubDate, '%Y%m') AS ym
+				from $this->article_table
+				where query_id = {$q_id}
+				order by ym desc";
+			$ym_result = $wpdb->get_row( $ym_sql );
+			$ym = (string) $ym_result->ym;
 		}
 
 		$sql = "select *
 				from $this->article_table
 				where query_id = {$q_id}
-				and date_format(pubDate, '%Y%m') = {$ym}
+				and date_format(pubDate, '%Y%m') = '{$ym}'
 				order by pubDate desc";
 
 		$articles = $wpdb->get_results( $sql );
@@ -448,9 +459,9 @@ INDEX (status)
         else {
             return results[1] || 0;
         }
-    }
+    };
 
-    year_list = {$json_year_list}
+    year_list = {$json_year_list};
 
     jQuery(document).ready(function ($) {
         jQuery("#spri-year").change(function () {
@@ -487,14 +498,19 @@ INDEX (status)
             window.location = "?ym=" + year + month;
         });
 
-        var set_option = function() {
+        var set_option = function () {
             var ym = urlParam("ym");
-            var y = ym.slice(0, 4);
-            var m = Number( ym.slice(4));
-            console.log(y,m);
-            jQuery("#spri-year option[value=" + y + "]").prop("selected", true);
-			jQuery("#spri-year").change();
-            jQuery("#spri-month option[value=" + m + "]").prop("selected", true);
+            if (ym == null) {
+                jQuery("#spri-year").change();
+            }
+            else {
+                var y = ym.slice(0, 4);
+                var m = Number(ym.slice(4));
+                console.log(y, m);
+                jQuery("#spri-year option[value=" + y + "]").prop("selected", true);
+                jQuery("#spri-year").change();
+                jQuery("#spri-month option[value=" + m + "]").prop("selected", true);
+            }
 
         };
 
@@ -554,6 +570,20 @@ SQL;
 		$setting_link = '<a href="' . admin_url( 'options-general.php?page=spri-naver-search' ) . '">' . __( Settings ) . '</a>';
 
 		return array_merge( $links, array( $setting_link ) );
+	}
+
+	protected function extract_articles_from_xml( $xml ) {
+		$articles = array();
+		foreach ( $xml->channel->item as $article ) {
+			if ( $article->originallink == "" ) {
+				$article->originallink = $article->link;
+			}
+			array_push( $articles,
+				$article
+			);
+		}
+
+		return $articles;
 	}
 
 }
