@@ -186,8 +186,8 @@ INDEX (status)
 		$articles = $this->retrive_articles( $q_id );
 
 		// building html part
-		$html = $this->generate_html( $attr, $articles );
-		$html .= $this->append_year_month_link( $q_id );
+		$html = $this->generate_year_month_navigation( $q_id );
+		$html .= $this->generate_html( $attr, $articles );
 
 		//TODO "Show more article"
 
@@ -401,11 +401,7 @@ INDEX (status)
 
 	protected function generate_html( $attr, $articles ) {
 
-		$article_count = count( $articles );
-
-		$html = "<p>{$article_count} 개</p>";
-
-		$html .= "<div class='$attr[class]' >";
+		$html = "<div class='$attr[class] spri-naver-search pull-left' >";
 
 		foreach ( $articles as $item ) {
 			require( plugin_dir_path( __FILE__ ) . "template/" . $attr['template'] . ".php" );
@@ -420,22 +416,114 @@ INDEX (status)
 	/**
 	 * @param int $q_id query id from database
 	 */
-	private function append_year_month_link( $q_id ) {
+	private function generate_year_month_navigation( $q_id ) {
 
 		$ym_data = $this->get_year_month_data_by_query_id( $q_id );
 
-		$buttons = "<div class='spri-naver-search'>";
-
+		// group by year
+		$year_list = array();
 		foreach ( $ym_data as $item ) {
-			$buttons .=
-				<<<HTML
-				<a href="?ym={$item->ym}" class="link">{$item->y}년 {$item->m}월</a>
-HTML;
+			$y = $item->y;
+			$m = $item->m;
+			$c = $item->c;
+
+			if ( ! isset( $year_list[ $y ] ) ) {
+				$year_list[ $y ] = array();
+			}
+			$year_list[ $y ][ $m ]['cnt'] = $c;
 		}
 
-		$buttons .= "</div>";
+		$html = "<div class='spri-naver-search pull-right'>";
 
-		return ( $buttons );
+		$json_year_list = json_encode( $year_list );
+
+		$html .= <<<SCRIPTS
+<script type="application/javascript">
+
+    urlParam = function (name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results == null) {
+            return null;
+        }
+        else {
+            return results[1] || 0;
+        }
+    }
+
+    year_list = {$json_year_list}
+
+    jQuery(document).ready(function ($) {
+        jQuery("#spri-year").change(function () {
+            var year = jQuery(this).children("option:selected").val();
+
+            jQuery("#spri-month option").each(function () {
+
+                var cur_month = jQuery(this).val();
+                var is_in = cur_month in year_list[year];
+
+                if (is_in > 0) {
+                    jQuery(this).show();
+                    jQuery(this).prop('disabled', false);
+                    jQuery(this).prop('selected', true);
+                    jQuery(this).text(cur_month + "월 " + year_list[year][cur_month].cnt + "건");
+                }
+                else {
+                    jQuery(this).hide();
+                    jQuery(this).prop('disabled', true);
+                }
+            });
+
+        });
+
+
+        jQuery("#spri-go-to-yyyymm").click(function () {
+            var year = jQuery("#spri-year").val();
+            var month = jQuery("#spri-month").val();
+
+            if (month < 10) {
+                month = "0" + month;
+            }
+
+            window.location = "?ym=" + year + month;
+        });
+
+        var set_option = function() {
+            var ym = urlParam("ym");
+            var y = ym.slice(0, 4);
+            var m = Number( ym.slice(4));
+            console.log(y,m);
+            jQuery("#spri-year option[value=" + y + "]").prop("selected", true);
+			jQuery("#spri-year").change();
+            jQuery("#spri-month option[value=" + m + "]").prop("selected", true);
+
+        };
+
+        set_option();
+    });
+
+
+</script>
+
+SCRIPTS;
+
+
+		$html .= "<select id='spri-year'>";
+		foreach ( $year_list as $year => $item ) {
+			$html .= "<option value='$year'>{$year}년</option>";
+		}
+		$html .= "</select>";
+
+		$html .= "<select id='spri-month'>";
+		foreach ( range( 1, 12 ) as $month ) {
+			$html .= "<option value='{$month}'></option>";
+		}
+		$html .= "</select>";
+
+		$html .= "<button id='spri-go-to-yyyymm'>조회</button>";
+		$html .= "</div>";
+		$html .= "<hr class='clear-both' />";
+
+		return ( $html );
 	}
 
 	function url_query_filter( $q ) {
@@ -464,11 +552,8 @@ SQL;
 
 	function add_plugin_setting_link( $links ) {
 		$setting_link = '<a href="' . admin_url( 'options-general.php?page=spri-naver-search' ) . '">' . __( Settings ) . '</a>';
-		$t = '<a href="google.com">ddddddd</a>';
 
-		//$setting_link = "asd";
 		return array_merge( $links, array( $setting_link ) );
-		//return $links;
 	}
 
 }
