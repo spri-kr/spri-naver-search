@@ -542,7 +542,7 @@ SCRIPTS;
 		$html .= "<button id='spri-go-to-yyyymm'>조회</button>";
 		$html .= "</div>";
 		$html .= "<div class='clear-both' ></div>";
-		$html .= "<hr class='clear-both' />";
+		$html .= "<hr class='clear-both spri-naver-search' />";
 
 		return ( $html );
 	}

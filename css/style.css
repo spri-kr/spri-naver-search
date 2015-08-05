@@ -12,6 +12,11 @@
     display: block;
 }
 
+hr.spri-naver-search{
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
 .pull-right{
     float: right;
 }
