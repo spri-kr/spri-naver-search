@@ -2,7 +2,7 @@
 
 /*
 Plugin Name: SPRI Naver news Search Api
-Version: 1.0
+Version: 1.1
 Author: ungsik.yun@gmail.com
 Description: Shortcode generating specific search result from naver.
 */
@@ -330,9 +330,10 @@ INDEX (status)
 
 	protected function get_search_results_from_naver( $attr, $total_page ) {
 		$attr['start'] = 1;
+		$articles = array();
 		for ( $i = 1; $i <= $total_page; $i ++ ) {
 			$xml = $this->get_naver_xml( $attr );
-			$articles = $this->extract_articles_from_xml( $xml );
+			$articles = $this->extract_articles_from_xml( $xml, $articles );
 			$attr['start'] = $attr['display'] * $i;
 		}
 
@@ -576,8 +577,8 @@ SQL;
 		return array_merge( $links, array( $setting_link ) );
 	}
 
-	protected function extract_articles_from_xml( $xml ) {
-		$articles = array();
+	protected function extract_articles_from_xml( $xml, $articles = array() ) {
+
 		foreach ( $xml->channel->item as $article ) {
 			if ( $article->originallink == "" ) {
 				$article->originallink = $article->link;
