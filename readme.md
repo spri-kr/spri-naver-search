@@ -29,6 +29,7 @@ start| (optional) default is 1. set starting page of search results. max is 1000
 sort|(optional) default is 'date'. set sorting method of results. **date** will sort result based on date. **sim** will sort result based on accuracy. 
 class| (optional) default is 'spri-naver-search' set the class of template.
 template| (optional) default is 'basic'. set the template of displaying result.
+is_crawl| (optiona) default is 'n'. possible values are 'y' and 'n'. if this set to 'y' the plugin crawling whole page of the naver search result. Displayed result will be group by year and month. 
 
 ### edit template
 
