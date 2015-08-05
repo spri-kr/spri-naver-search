@@ -22,5 +22,9 @@
 
 .clear-both {
     clear: both;
+}
 
+.spri-select select, .spri-select button {
+    padding: 5px;
+    margin: 3px;
 }

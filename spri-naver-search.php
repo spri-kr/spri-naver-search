@@ -175,12 +175,14 @@ INDEX (status)
 			$attr );
 
 		if ( $attr['is_crawl'] == 'y' ) {
+
 			//check if search is first time
 			if ( ! $this->is_exist_query( $attr['query'] ) ) {
 				//	query is not in db
 				$this->insert_query( $attr['query'] );
 				$this->new_crawl( $attr );
 			}
+
 			$q_id = $this->get_query_id_from_query( $attr['query'] );
 
 			// Check page parameter and Get article by parameter
@@ -189,6 +191,7 @@ INDEX (status)
 			// building html part
 			$html = $this->generate_year_month_navigation( $q_id );
 			$html .= $this->generate_html( $attr, $articles );
+
 		} else {
 			$xml = $this->get_naver_xml( $attr );
 			$articles = $this->extract_articles_from_xml( $xml );
@@ -444,7 +447,7 @@ SQL;
 			$year_list[ $y ][ $m ]['cnt'] = $c;
 		}
 
-		$html = "<div class='spri-naver-search pull-right'>";
+		$html = "<div class='spri-naver-search pull-right spri-select'>";
 
 		$json_year_list = json_encode( $year_list );
 
@@ -537,6 +540,7 @@ SCRIPTS;
 
 		$html .= "<button id='spri-go-to-yyyymm'>조회</button>";
 		$html .= "</div>";
+		$html .= "<div class='clear-both' ></div>";
 		$html .= "<hr class='clear-both' />";
 
 		return ( $html );
