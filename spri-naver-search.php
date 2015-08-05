@@ -480,7 +480,7 @@ SQL;
                     jQuery(this).show();
                     jQuery(this).prop('disabled', false);
                     jQuery(this).prop('selected', true);
-                    jQuery(this).text(cur_month + "월 " + year_list[year][cur_month].cnt + "건");
+                    jQuery(this).text(cur_month + "월 (" + year_list[year][cur_month].cnt + "건)");
                 }
                 else {
                     jQuery(this).hide();
