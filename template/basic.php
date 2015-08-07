@@ -3,6 +3,7 @@
 $temp_date = date('Y년 m월 d일',strtotime($item->pubDate));
 
 $href = "href='{$item->originallink}";
+$target = "_blink";
 
 if($item->originallink == $item->link)
 {
