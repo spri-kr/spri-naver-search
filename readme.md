@@ -21,7 +21,7 @@ You can find attr reference from [Reference]
 
 attr name|description
 ----------|-----------|
-key| put your naver search api key
+key| (optional)put your naver search api key. if not set, get api key from plugin option panel.
 query| word or words with quote want to search
 target| default is 'news'. you can find available parameters from [Reference] 
 display| (optional) default is 10. determine how many results be displayed. max is 100.
