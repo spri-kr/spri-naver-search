@@ -40,7 +40,7 @@ class spri_naver_option {
 
         add_settings_field(
                 'api_key',
-                'API key',
+                'Search API key',
                 array( $this, 'plugin_setting_string' ),
                 'spri-naver-search',
                 'spri_naver_option_section'
