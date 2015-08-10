@@ -12,7 +12,7 @@ if($item->originallink == $item->link)
 }
 
 //$temp_date = $item->pubDate;
-$template = <<< ARTICLE
+$template .= <<< ARTICLE
 
 <div class='item' >
 <h4 class='title'><a {$href} target='{$target}'> {$item->title}</a></h4>

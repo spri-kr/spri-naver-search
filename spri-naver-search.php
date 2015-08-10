@@ -419,6 +419,7 @@ SQL;
 		$html = "<div class='$attr[class] spri-naver-search pull-left' >";
 
 		foreach ( $articles as $item ) {
+			$template = "";
 			require( plugin_dir_path( __FILE__ ) . "template/" . $attr['template'] . ".php" );
 			$html .= $template;
 		}
