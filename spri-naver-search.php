@@ -142,7 +142,7 @@ INDEX (status)
 
 		// for each query, get new articles
 		foreach ( $query_list as $query ) {
-			$this->maintenance_crawl( $query );
+			//$this->maintenance_crawl( $query );
 		}
 
 	}
@@ -419,7 +419,6 @@ SQL;
 		$html = "<div class='$attr[class] spri-naver-search pull-left' >";
 
 		foreach ( $articles as $item ) {
-			$template = "";
 			require( plugin_dir_path( __FILE__ ) . "template/" . $attr['template'] . ".php" );
 			$html .= $template;
 		}
