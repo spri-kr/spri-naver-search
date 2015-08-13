@@ -46,7 +46,10 @@ class spri_naver_news {
 		register_deactivation_hook( __FILE__, array( $this, 'deactivation' ) );
 
 		// option page creating
-		new spri_naver_option();
+		new spri_naver_option( array(
+			'article_table'=>$this->article_table,
+			'query_table'=>$this->query_table,
+		) );
 
 		// load options
 		$this->options = get_option( 'spri_naver_option_name' );
@@ -196,9 +199,10 @@ INDEX (status)
 			$xml = $this->get_naver_xml( $attr );
 			$articles = $this->extract_articles_from_xml( $xml );
 
-			usort($articles, function($a, $b){
-				return strtotime($a->pubDate) < strtotime($b->pubDate);
-			});
+			usort( $articles,
+				function ( $a, $b ) {
+					return strtotime( $a->pubDate ) < strtotime( $b->pubDate );
+				} );
 
 			$html = $this->generate_html( $attr, $articles );
 		}
@@ -418,7 +422,9 @@ SQL;
 
 		$html = "<div class='$attr[class] spri-naver-search pull-left' >";
 
+
 		foreach ( $articles as $item ) {
+			$template = "";
 			require( plugin_dir_path( __FILE__ ) . "template/" . $attr['template'] . ".php" );
 			$html .= $template;
 		}
