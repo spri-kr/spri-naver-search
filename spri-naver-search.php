@@ -151,7 +151,7 @@ UNIQUE (article_id)
 
 		// for each query, get new articles
 		foreach ( $query_list as $query ) {
-			//$this->maintenance_crawl( $query );
+			$this->maintenance_crawl( $query );
 		}
 
 	}
