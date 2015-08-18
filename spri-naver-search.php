@@ -49,6 +49,7 @@ class spri_naver_news {
 		new spri_naver_option( array(
 			'article_table'=>$this->article_table,
 			'query_table'=>$this->query_table,
+			'status_table'=>$this->status_table,
 		) );
 
 		// load options
@@ -106,9 +107,14 @@ index (status)
 
 		$sql3 = "CREATE TABLE $this->status_table (
 id int(11) NOT NULL AUTO_INCREMENT,
+article_id int(11) NOT NULL,
 `status` VARCHAR(20) NOT NULL,
 index (id),
-INDEX (status)
+INDEX (`status`),
+index (article_id),
+index (article_id, `status`),
+UNIQUE (article_id)
+
 ) $charset_collate;
 ";
 //INSERT INTO $this->status_table
@@ -390,20 +396,33 @@ SQL;
 
 		//TODO sanitize $ym
 
+
+		// Get year and month from GET param or db
 		if ( isset( $wp_query->query_vars['ym'] ) ) {
 			$ym = $wp_query->query_vars['ym'];
 		} else {
 			$ym_sql = "select date_format(pubDate, '%Y%m') AS ym
-				from $this->article_table
+				from {$this->article_table}
 				where query_id = {$q_id}
+				and id not in (
+					select article_id
+					from {$this->status_table}
+					where status = 'false'
+				)
 				order by ym desc";
 			$ym_result = $wpdb->get_row( $ym_sql );
 			$ym = (string) $ym_result->ym;
 		}
 
+		// Get articles base on ym
 		$sql = "select *
 				from $this->article_table
 				where query_id = {$q_id}
+				and id not in (
+					select article_id
+					from {$this->status_table}
+					where status = 'false'
+				)
 				and date_format(pubDate, '%Y%m') = '{$ym}'
 				order by pubDate desc";
 
@@ -564,12 +583,18 @@ SCRIPTS;
 		global $wpdb;
 
 		$sql = <<<SQL
-			SELECT date_format(pubDate, '%Y%m') AS ym,
-YEAR(pubDate) as y,
-month(pubDate) as m,
-count(*) as c
+SELECT
+    date_format(pubDate, '%Y%m') AS ym,
+    YEAR(pubDate)                as y,
+    month(pubDate)               as m,
+    count(*)                     as c
 FROM wp_spri_naver_news_article
 WHERE query_id = {$q_id}
+and id not in (
+select article_id
+from {$this->status_table}
+where status = 'false'
+)
 GROUP BY ym
 ORDER BY ym DESC;
 SQL;
