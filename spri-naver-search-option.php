@@ -2,18 +2,61 @@
 
 class spri_naver_option {
 
-    function __construct() {
-        add_action( 'admin_menu', array( $this, 'add_page' ) );
-        add_action( 'admin_init', array( $this, 'plugin_admin_init' ) );
+    private $article_table;
+    private $query_table;
+    private $status_table;
 
+    function __construct( $tables = array() ) {
+        add_action( 'admin_menu', array( $this, 'add_menu_and_page' ) );
+        add_action( 'admin_init', array( $this, 'plugin_admin_init' ) );
+        add_action( 'wp_ajax_spri_naver_get_article_list', array( $this, 'ajax_get_articles' ) );
+        add_action( 'wp_ajax_spri_naver_update_display', array( $this, 'ajax_update_article_display' ) );
+
+        $this->article_table = $tables['article_table'];
+        $this->query_table = $tables['query_table'];
+        $this->status_table = $tables['status_table'];
     }
 
-    function add_page() {
-        add_options_page( 'SPRI Naver Search options',
+    function add_menu_and_page() {
+        add_menu_page(
                 'SPRI Naver Search',
-                'manage_options',
+                'SPRI Naver Search',
+                'administrator',
                 'spri-naver-search',
-                array( $this, 'options_view' ) );
+                array( $this, 'options_view' )
+        );
+
+        $article_page_hook = add_submenu_page(
+                'spri-naver-search',
+                'SPRI Naver Search Article Manager',
+                'Article Manage',
+                'manage_options',
+                'spri-naver-search-articles',
+                array( $this, 'article_dashboard' )
+        );
+
+        add_action( 'load-' . $article_page_hook, array( $this, 'article_manage_js_load' ) );
+    }
+
+    function article_manage_js_load() {
+        wp_enqueue_script( 'spri-naver-template-engine-js',
+                plugins_url( '/js/ICanHaz.min.js', __FILE__ ),
+                array( 'jquery' ) );
+        wp_enqueue_script( 'spri-naver-underscore-js',
+                "https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js",array( 'jquery' ));
+        wp_enqueue_script( 'spri-naver-basic-js',
+                plugins_url( '/js/scripts.js', __FILE__ ),
+                array( 'jquery' ) );
+
+        wp_enqueue_script( 'spri-naver-bootstrap-js',
+                "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js",array( 'jquery' ));
+        wp_enqueue_style( 'spri-naver-bootstrap-css',
+                "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" );
+
+        wp_enqueue_script( 'spri-naver-bootstrap-switch-js',
+                plugins_url('/lib/bootstrap-switch/dist/js/bootstrap-switch.min.js', __FILE__),array( 'jquery' ));
+        wp_enqueue_style( 'spri-naver-bootstrap-switch-css',
+                plugins_url('/lib/bootstrap-switch/dist/css/bootstrap3/bootstrap-switch.min.css',__FILE__) );
     }
 
     function options_view() {
@@ -32,16 +75,63 @@ class spri_naver_option {
         <?php
     }
 
+    function article_dashboard() {
+        global $wpdb;
+        $q_list = $wpdb->get_results( "Select query, id from {$this->query_table}" );
+        ?>
+
+        <script id="article_template" type="text/html">
+            <div class='item item-{{id}} col-xs-3'>
+                <h4 class='article-title'>{{{title}}}</h4>
+
+                <input type="checkbox" name="{{id}}" value="{{status}}" checked>
+
+                <p class='article-description'> {{{description}}} </p>
+
+                <p class='article-pubdate'>{{pubDate}}</p>
+
+
+            </div>
+        </script>
+
+
+        <h2>Article manager</h2>
+
+        <div class="spri-naver-article-manager option_group">
+            <select name="query">
+                <?php
+                foreach ( $q_list as $q ) {
+                    echo "<option value = {$q->id}>{$q->query}</option>";
+                }
+                ?>
+            </select>
+
+            <button id="get_article">
+                조회
+            </button>
+        </div>
+
+        <div class="spri-naver-article-manager article-list">
+
+        </div>
+
+
+        <?php
+    }
+
     function plugin_admin_init() {
 
         register_setting( 'spri_naver_option_group', 'spri_naver_option_name' );
 
-        add_settings_section( 'spri_naver_option_section', 'Attributes', array( $this, 'attr_section_display' ), 'spri-naver-search' );
+        add_settings_section( 'spri_naver_option_section',
+                'Attributes',
+                array( $this, 'attr_section_display' ),
+                'spri-naver-search' );
 
         add_settings_field(
                 'api_key',
                 'Search API key',
-                array( $this, 'plugin_setting_string' ),
+                array( $this, 'api_option_display' ),
                 'spri-naver-search',
                 'spri_naver_option_section'
         );
@@ -55,10 +145,56 @@ EOT;
 
     }
 
-    function plugin_setting_string() {
+    function api_option_display() {
         $options = get_option( 'spri_naver_option_name' );
         echo "<input name='spri_naver_option_name[api_key]' size='40' type='text' value='{$options['api_key']}' />";
 
+    }
+
+    function ajax_get_articles() {
+        global $wpdb;
+        $q_id = $_POST['query_id'];
+
+        $articles = $wpdb->get_results(
+                "SELECT
+    article.id,
+    article.title,
+    article.description,
+    article.originallink,
+    YEAR(article.pubDate) as year,
+    MONTH(article.pubDate) as month,
+    article.pubDate,
+    status.status
+FROM wp_spri_naver_news_article as article left join wp_spri_naver_news_status as status
+        on article.id = status.article_id
+WHERE query_id = {$q_id}
+ORDER BY pubDate DESC
+                "
+        );
+
+
+        echo json_encode( $articles );
+
+
+        wp_die();
+    }
+
+    function ajax_update_article_display(){
+        global $wpdb;
+        $p_id = $_POST['p_id'];
+        $display_val = $_POST['display_val'];
+
+
+        $sql = $wpdb->prepare(
+                "insert into {$this->status_table} (article_id, status) values (%d, %s) on duplicate key update status=%s",
+                $p_id,
+                $display_val,
+                $display_val
+        );
+
+        $wpdb->query($sql);
+
+        wp_die();
     }
 
 }
