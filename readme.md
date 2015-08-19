@@ -16,7 +16,7 @@ All of the conditional search rules are [HERE][conditional search]
 
 ### initial setup
 
-after plugin activation, you should fill out API key option value at `SPRI Naver Search`  
+after plugin activation, you should fill out API key option value at `General>SPRI Naver Search`  
 
 ### available attr in shortcode
 You can find attr reference from [Reference]
@@ -90,3 +90,6 @@ is_crawl| (optional) 기본값은 'n'입니다. 'y'와 'n'중 하나를 선택�
 - `$item->originallink`: 언론사 기사 링크
 - `$item->description`: 검색어를 포함한 기사 본문 일부
 - `$item->pubDate`: 기사 발행 일시
+
+### 크롤된 뉴스 기사 숨기기
+`SPRI Naver Search > Article Manage`에서 어떤 기사를 보이고 숨길것인지 설정 할 수 있습니다.
