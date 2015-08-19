@@ -2,7 +2,7 @@
 
 /*
 Plugin Name: SPRI Naver news Search Api
-Version: 1.1
+Version: 2.0
 Author: ungsik.yun@gmail.com
 Description: Shortcode generating specific search result from naver.
 */

@@ -16,7 +16,7 @@ All of the conditional search rules are [HERE][conditional search]
 
 ### initial setup
 
-after plugin activation, you should fill out API key option value at `General>SPRI Naver Search`  
+after plugin activation, you should fill out API key option value at `SPRI Naver Search`  
 
 ### available attr in shortcode
 You can find attr reference from [Reference]
@@ -44,6 +44,10 @@ you edit or add template in __template__ directory. in the template file, next p
 - `$item->originallink`: link to original news(or service) provider
 - `$item->description`: short description of result
 - `$item->pubDate`: published date of result
+
+### Hide crawled articles
+
+you can hide some articles from `SPRI Naver Search > Article Manage` menu.
 
 # 한국어
 
