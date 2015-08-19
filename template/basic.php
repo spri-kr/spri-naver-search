@@ -1,12 +1,11 @@
 <?php
 
-$temp_date = date('Y년 m월 d일',strtotime($item->pubDate));
+$temp_date = date( 'Y년 m월 d일', strtotime( $item->pubDate ) );
 
 $href = "href='{$item->originallink}'";
 $target = "_blank";
 
-if($item->originallink == $item->link)
-{
+if ( $item->originallink == $item->link ) {
 	$href = "";
 	$target = "_self";
 }
