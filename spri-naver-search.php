@@ -2,16 +2,13 @@
 
 /*
 Plugin Name: SPRI Naver news Search Api
-Version: 2.0
+Version: 1.2
 Author: ungsik.yun@gmail.com
-Description: Shortcode generating specific search result from naver.
+Description: Shortcode for specific search result from naver.
 */
 
 // http://developer.naver.com/wiki/pages/News
 
-/*
- * Key and query is required
- * */
 require_once( "spri-naver-search-option.php" );
 
 class spri_naver_news {
@@ -45,11 +42,11 @@ class spri_naver_news {
 		register_activation_hook( __FILE__, array( $this, 'activation' ) );
 		register_deactivation_hook( __FILE__, array( $this, 'deactivation' ) );
 
-		// option page creating
+		// option page creating. pass tables
 		new spri_naver_option( array(
-			'article_table'=>$this->article_table,
-			'query_table'=>$this->query_table,
-			'status_table'=>$this->status_table,
+			'article_table' => $this->article_table,
+			'query_table'   => $this->query_table,
+			'status_table'  => $this->status_table,
 		) );
 
 		// load options
@@ -59,7 +56,6 @@ class spri_naver_news {
 	function activation() {
 		$this->set_up_database();
 		$this->cron_job_registration();
-
 	}
 
 	function deactivation() {
@@ -71,7 +67,7 @@ class spri_naver_news {
 
 		$charset_collate = $wpdb->get_charset_collate();
 
-		$sql1 = "CREATE TABLE $this->article_table (
+		$sql1 = "CREATE TABLE {$this->article_table} (
 id INT(11) NOT NULL AUTO_INCREMENT,
 query_id int(11) NOT NULL,
 title VARCHAR(50) NOT NULL,
@@ -90,7 +86,7 @@ UNIQUE (uniqueness_hash)
 ) $charset_collate;
 ";
 
-		$sql2 = "CREATE TABLE $this->query_table (
+		$sql2 = "CREATE TABLE {$this->query_table} (
 id int(11) NOT NULL AUTO_INCREMENT,
 query VARCHAR(100) NOT NULL,
 query_hash char(40) NOT NULL,
@@ -105,7 +101,7 @@ index (status)
 ) $charset_collate;
 ";
 
-		$sql3 = "CREATE TABLE $this->status_table (
+		$sql3 = "CREATE TABLE {$this->status_table} (
 id int(11) NOT NULL AUTO_INCREMENT,
 article_id int(11) NOT NULL,
 `status` VARCHAR(20) NOT NULL,
@@ -117,12 +113,6 @@ UNIQUE (article_id)
 
 ) $charset_collate;
 ";
-//INSERT INTO $this->status_table
-//(`status`)
-//VALUES
-// ('NEW'),
-// ('MAINTENANCE');
-//";
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 		dbDelta( $sql1 );
 		dbDelta( $sql2 );
@@ -130,7 +120,6 @@ UNIQUE (article_id)
 	}
 
 	function cron_job_registration() {
-		//wp_schedule_event( time(), 'ten_seconds', 'spri_naver_cron_job' );
 		wp_schedule_event( time(), 'twicedaily', 'spri_naver_cron_job' );
 	}
 
@@ -143,7 +132,6 @@ UNIQUE (article_id)
 	 *Crawl the naver news with query and insert result into database
 	 */
 	public function do_cron_job() {
-
 		global $wpdb;
 
 		//Get list of querys
@@ -167,6 +155,11 @@ UNIQUE (article_id)
 		return (array) $schedules;
 	}
 
+	/**
+	 * shortcode function.
+	 *
+	 * @return string html snippet has results
+	 */
 	public function naver_search( $attr ) {
 
 		// Set default value
@@ -184,11 +177,13 @@ UNIQUE (article_id)
 			$attr );
 
 		if ( $attr['is_crawl'] == 'y' ) {
+			// get articles form database.
 
-			//check if search is first time
+			//check if the search is first time
 			if ( ! $this->is_exist_query( $attr['query'] ) ) {
-				//	query is not in db
+				// if first time, query is not in db
 				$this->insert_query( $attr['query'] );
+				// Do new crawl
 				$this->new_crawl( $attr );
 			}
 
@@ -202,9 +197,12 @@ UNIQUE (article_id)
 			$html .= $this->generate_html( $attr, $articles );
 
 		} else {
+			// get articles from naver search api
+
 			$xml = $this->get_naver_xml( $attr );
 			$articles = $this->extract_articles_from_xml( $xml );
 
+			// sort articles date order
 			usort( $articles,
 				function ( $a, $b ) {
 					return strtotime( $a->pubDate ) < strtotime( $b->pubDate );
@@ -213,7 +211,7 @@ UNIQUE (article_id)
 			$html = $this->generate_html( $attr, $articles );
 		}
 
-		//TODO "Show more article"
+		//TODO "Show more article function"
 
 		return $html;
 	}
@@ -237,10 +235,7 @@ UNIQUE (article_id)
 
 		$xml = $this->get_naver_xml( $attr );
 
-		$total_page = $xml->channel->total / 100;
-		if ( $total_page > 10 ) {
-			$total_page = 10;
-		}
+		$total_page = $this->calculate_total_page( $xml );
 
 		$articles = $this->get_search_results_from_naver( $attr, $total_page );
 
@@ -268,10 +263,7 @@ UNIQUE (article_id)
 
 		$xml = $this->get_naver_xml( $attr );
 
-		$total_page = $xml->channel->total / 100;
-		if ( $total_page > 10 ) {
-			$total_page = 10;
-		}
+		$total_page = $this->calculate_total_page( $xml );
 
 		$articles = $this->get_search_results_from_naver( $attr, $total_page );
 
@@ -620,6 +612,20 @@ SQL;
 		}
 
 		return $articles;
+	}
+
+	/**
+	 * @param $xml
+	 *
+	 * @return float|int
+	 */
+	protected function calculate_total_page( $xml ) {
+		$total_page = $xml->channel->total / 100;
+		if ( $total_page > 10 ) {
+			$total_page = 10;
+		}
+
+		return $total_page;
 	}
 
 }
