@@ -483,6 +483,7 @@ SQL;
 
 		$json_year_list = json_encode( $year_list );
 
+		//TODO separate scripts to js file. localize json_year_list
 		$html .= <<<SCRIPTS
 <script type="application/javascript">
 
