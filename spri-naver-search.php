@@ -194,7 +194,7 @@ UNIQUE (article_id)
 
 			// building html part
 			$html = $this->generate_year_month_navigation( $q_id );
-			$html .= $this->generate_html( $attr, $articles );
+			$html .= $this->generate_articles_html( $attr, $articles );
 
 		} else {
 			// get articles from naver search api
@@ -208,7 +208,7 @@ UNIQUE (article_id)
 					return strtotime( $a->pubDate ) < strtotime( $b->pubDate );
 				} );
 
-			$html = $this->generate_html( $attr, $articles );
+			$html = $this->generate_articles_html( $attr, $articles );
 		}
 
 		//TODO "Show more article function"
@@ -224,6 +224,7 @@ UNIQUE (article_id)
 	function maintenance_crawl( $q ) {
 		global $wpdb;
 
+		// set attrs for crawling
 		$attr = array(
 			'key'     => $this->options['api_key'],
 			'query'   => $q->query,
@@ -258,6 +259,7 @@ UNIQUE (article_id)
 		global $wpdb;
 		//$wpdb->show_errors();
 
+		// set attrs for crawling
 		$attr['display'] = '100';
 		$attr['sort'] = 'sim';
 
@@ -303,6 +305,12 @@ UNIQUE (article_id)
 		}
 	}
 
+	/**
+	 *
+	 * @param $q
+	 *
+	 * @return mixed return 0 or 1
+	 */
 	function is_exist_query( $q ) {
 		global $wpdb;
 
@@ -328,6 +336,14 @@ UNIQUE (article_id)
 		return $xml;
 	}
 
+	/**
+	 * get all articles from naver search results
+	 *
+	 * @param $attr
+	 * @param $total_page
+	 *
+	 * @return array
+	 */
 	protected function get_search_results_from_naver( $attr, $total_page ) {
 		$attr['start'] = 1;
 		$articles = array();
@@ -427,7 +443,7 @@ SQL;
 		wp_enqueue_style( 'spri-naver-style', $plugin_url . 'css/style.css' );
 	}
 
-	protected function generate_html( $attr, $articles ) {
+	protected function generate_articles_html( $attr, $articles ) {
 
 		$html = "<div class='$attr[class] spri-naver-search pull-left' >";
 
