@@ -261,15 +261,13 @@ UNIQUE (article_id)
 		$attr['display'] = '100';
 		$attr['sort'] = 'sim';
 
+		$query_id = $this->get_new_query_id( $attr );
+
 		$xml = $this->get_naver_xml( $attr );
 
 		$total_page = $this->calculate_total_page( $xml );
 
 		$articles = $this->get_search_results_from_naver( $attr, $total_page );
-
-		$q_hash = sha1( $attr['query'] );
-		$query_id_sql = "select id from $this->query_table where query_hash = '$q_hash';";
-		$query_id = $wpdb->get_row( $query_id_sql );
 
 		$this->insert_articles( $query_id->id, $articles );
 	}
@@ -626,6 +624,21 @@ SQL;
 		}
 
 		return $total_page;
+	}
+
+	/**
+	 * @param $attr
+	 * @param $wpdb
+	 *
+	 * @return mixed
+	 */
+	protected function get_new_query_id( $attr ) {
+		global $wpdb;
+		$q_hash = sha1( $attr['query'] );
+		$query_id_sql = "select id from $this->query_table where query_hash = '$q_hash';";
+		$query_id = $wpdb->get_row( $query_id_sql );
+
+		return $query_id;
 	}
 
 }
