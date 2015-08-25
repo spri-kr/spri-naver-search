@@ -10,6 +10,7 @@ Description: Shortcode for specific search result from naver.
 // http://developer.naver.com/wiki/pages/News
 
 require_once( "spri-naver-search-option.php" );
+require_once( "spri-naver-search-widget.php" );
 
 class spri_naver_news {
 
@@ -51,6 +52,12 @@ class spri_naver_news {
 
 		// load options
 		$this->options = get_option( 'spri_naver_option_name' );
+
+		//widget scripts load
+		add_action('wp_enqueue_scripts',array($this, 'register_widget_scripts'));
+
+		// widget create
+		add_action('widgets_init', array($this, 'register_article_widget' ));
 	}
 
 	function activation() {
@@ -155,6 +162,26 @@ UNIQUE (article_id)
 		return (array) $schedules;
 	}
 
+	function register_widget_scripts(){
+		wp_enqueue_script(
+			'spri-naver-widget-slide-script',
+			plugins_url('/js/slide.js', __FILE__),
+			array( 'jquery' )
+		);
+
+		wp_enqueue_script(
+			'spri-naver-owl-slider-script',
+			plugins_url('/lib/owl-carousel/owl.carousel.min.js', __FILE__),
+			array( 'jquery' )
+		);
+
+		wp_register_style('spri-naver-widget-style', plugins_url('/css/style.css', __FILE__));
+		wp_register_style('spri-naver-widget-slider-style', plugins_url('/lib/owl-carousel/owl.carousel.css', __FILE__));
+
+		wp_enqueue_style( 'spri-naver-widget-style' );
+		wp_enqueue_style( 'spri-naver-widget-slider-style' );
+	}
+
 	/**
 	 * shortcode function.
 	 *
@@ -243,7 +270,7 @@ UNIQUE (article_id)
 		$this->insert_articles( $q->id, $articles );
 	}
 
-	private function get_query_list() {
+	function get_query_list() {
 		global $wpdb;
 
 		return $wpdb->get_results( "
@@ -613,6 +640,10 @@ SQL;
 		$setting_link = '<a href="' . admin_url( 'options-general.php?page=spri-naver-search' ) . '">' . __( Settings ) . '</a>';
 
 		return array_merge( $links, array( $setting_link ) );
+	}
+
+	function register_article_widget() {
+		register_widget('spri_naver_article_widget');
 	}
 
 	protected function extract_articles_from_xml( $xml, $articles = array() ) {

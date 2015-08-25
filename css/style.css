@@ -33,3 +33,16 @@ hr.spri-naver-search{
     padding: 5px;
     margin: 3px;
 }
+
+.widget_dock{
+    margin-top: 7px;
+    width: 92.5%;
+}
+
+.spri-naver-search-slide p{
+    line-height: 140%;
+}
+.spri-naver-search-slide h2{
+    color: #222;
+    font-size: 12px;
+}
