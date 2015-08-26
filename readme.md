@@ -49,6 +49,10 @@ you edit or add template in __template__ directory. in the template file, next p
 
 you can hide some articles from `SPRI Naver Search > Article Manage` menu.
 
+### Widget
+
+You can display your search results on widget. At widget option, you can select query that set shortcode has `is_crawl=y` option.
+
 # 한국어
 
 사용하는 법
@@ -93,3 +97,6 @@ is_crawl| (optional) 기본값은 'n'입니다. 'y'와 'n'중 하나를 선택�
 
 ### 크롤된 뉴스 기사 숨기기
 `SPRI Naver Search > Article Manage`에서 어떤 기사를 보이고 숨길것인지 설정 할 수 있습니다.
+
+### 위젯
+네이버 뉴스 검색 결과를 위젯으로 표시할 수 있습니다. 위젯 옵션에서 숏코드에 `is_crawl=y` 옵션을 가지고 있는 쿼리를 선택할 수 있습니다.
