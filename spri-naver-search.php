@@ -236,9 +236,12 @@ UNIQUE (article_id)
 				} );
 
 			$html = $this->generate_articles_html( $attr, $articles );
+
 		}
 
 		//TODO "Show more article function"
+
+		$html .= $this->add_naver_bi();
 
 		return $html;
 	}
@@ -687,6 +690,18 @@ SQL;
 		$query_id = $wpdb->get_row( $query_id_sql );
 
 		return $query_id;
+	}
+
+	private function add_naver_bi() {
+
+		$path = plugins_url("/img/powered_by_NAVER.png",__FILE__);
+		$bi = <<< BIHTML
+<a href="http://developer.naver.com/wiki/pages/OpenAPI" target="_blank" class="pull-right naver-bi">
+    <img src="{$path}" alt="NAVER OpenAPI" />
+</a>
+BIHTML;
+
+		return $bi;
 	}
 
 }
