@@ -17,7 +17,7 @@ class spri_naver_article_widget extends WP_Widget {
                 'spri-naver-article-widget', //id
                 'SPRI Naver Article Widget', //name
                 array(
-                        'description' => 'This is yet another test widget'
+                        'description' => 'Article slide widget from naver search result'
                 )
 
         );
