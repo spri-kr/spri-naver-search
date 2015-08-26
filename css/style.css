@@ -30,6 +30,7 @@ hr.spri-naver-search{
 }
 
 .spri-select select, .spri-select button {
+    border-style: solid;
     padding: 5px;
     margin: 3px;
 }
