@@ -26,6 +26,7 @@ class spri_naver_article_widget extends WP_Widget {
 
     function widget( $args, $instance ) {
         global $wpdb;
+        extract( $args );
 
         $q = (int) $instance['q'];
         $n = (int) $instance['n'];
@@ -43,7 +44,7 @@ class spri_naver_article_widget extends WP_Widget {
 
         $article_list = $wpdb->get_results( $sql );
 
-        $html = "<div class='owl-carousel spri-naver-search-slide widget widget_dock'>";
+        $html = "<div class='owl-carousel spri-naver-search-slide widget_dock'>";
         foreach ( $article_list as $item ) {
             $html .= '<div>';
 
@@ -70,7 +71,9 @@ ARTICLE;
         $html .= "</div>";
 
 
+        echo $before_widget;
         echo $html;
+        echo $after_widget;
     }
 
     function form( $instance ) {
