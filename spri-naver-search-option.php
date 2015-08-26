@@ -107,7 +107,6 @@ class spri_naver_option {
             </div>
         </script>
 
-
         <h2>Article manager</h2>
 
         <div class="spri-naver-article-manager option_group">
@@ -125,7 +124,6 @@ class spri_naver_option {
         </div><!--option group end-->
 
         <div class="spri-naver-article-manager article-list">
-
         </div><!--Article list end-->
         <?php
     }
@@ -154,15 +152,12 @@ class spri_naver_option {
     }
 
     function attr_section_display() {
-        echo <<< EOT
-        Set default options
-EOT;
+        echo "Set default options";
     }
 
     function api_option_display() {
         $options = get_option( 'spri_naver_option_name' );
         echo "<input name='spri_naver_option_name[api_key]' size='40' type='text' value='{$options['api_key']}' />";
-
     }
 
 	/**

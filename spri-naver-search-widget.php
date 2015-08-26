@@ -12,16 +12,13 @@ class spri_naver_article_widget extends WP_Widget {
         $this->query_table = $wpdb->prefix . "spri_naver_news_query";
         $this->status_table = $wpdb->prefix . "spri_naver_news_status";
 
-
         parent::__construct(
                 'spri-naver-article-widget', //id
                 'SPRI Naver Article Widget', //name
                 array(
                         'description' => 'Article slide widget from naver search result'
                 )
-
         );
-
     }
 
     function widget( $args, $instance ) {
@@ -57,19 +54,18 @@ class spri_naver_article_widget extends WP_Widget {
             }
 
             $html .= <<<ARTICLE
-
-<a {$href} {$target}> <h2> {$item->title} </h2></a>
-<a  {$href} {$target}>
-<p> {$item->description} </p>
+<a {$href} {$target}>
+    <h2> {$item->title} </h2>
+</a>
+<a {$href} {$target}>
+    <p> {$item->description} </p>
 </a>
 ARTICLE;
 
             $html .= '</div>';
 
-
         }
         $html .= "</div>";
-
 
         echo $before_widget;
         echo $html;
@@ -83,7 +79,6 @@ ARTICLE;
 
         $q = isset( $instance['q'] ) ? esc_attr( $instance['q'] ) : 0;
         $n = isset( $instance['n'] ) ? absint( $instance['n'] ) : 6;
-
         ?>
 
         <p>
