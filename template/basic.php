@@ -7,7 +7,7 @@ $target = "target='_blank'";
 
 if ( $item->originallink == $item->link ) {
 	$href = "";
-	$target = "target='_self";
+	$target = "target='_self'";
 }
 
 //$temp_date = $item->pubDate;
