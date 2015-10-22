@@ -1,6 +1,10 @@
+// varialble for keeping news articles
 var spri_articles;
 
+// All ajax functions are located at spri-naver-search-option.php
 jQuery(document).ready(function ($) {
+
+    // getting news articles for  selected query via ajax
     jQuery("#get_article").click(function () {
 
         //prepare query id for sending
@@ -16,28 +20,35 @@ jQuery(document).ready(function ($) {
             success: get_articles
         };
 
-        // empty and show loading message
+        // empty article list space and show loading message
         jQuery(".article-list").empty().html("Loading!");
 
-        //Tada!
+        //send ajax query
         jQuery.ajax(ajax_option);
     });
 
+    // callback function after ajax request
     function get_articles(r) {
+        // result is json format
         spri_articles = JSON.parse(r);
+
+        //clear article list space
         jQuery(".article-list").empty();
 
+        // Display result
         if (spri_articles.length == 0) {
             jQuery(".article-list").html("No Result!");
         }
         else {
+            // display result articles number
             jQuery(".article-list").append(spri_articles.length + " Results!");
 
+            // transform json object into html element vir template
+            // template is located at 'spri_naver_option::article_dashboard'
             spri_articles.forEach(function (article, i) {
                 var item;
                 item = ich.article_template(article);
                 if (i % 4 == 0) {
-
                     div = document.createElement('div');
                     div.className = "row";
                     jQuery(".article-list").append(div);
@@ -45,20 +56,21 @@ jQuery(document).ready(function ($) {
                 jQuery(div).append(item);
             });
 
+            // add on, off slide buttons
             jQuery(".item input[value=false]").removeProp('checked');
-
             jQuery(".item input[type=checkbox]").bootstrapSwitch(
                 {
                     size: "mini",
                     offColor: "danger",
-                    onSwitchChange: update_display
+                    onSwitchChange: update_display_option
                 });
 
         }
 
     }
 
-    function update_display(r) {
+    // change articles display on, off option via slide button
+    function update_display_option(r) {
         var p_id = jQuery(this).attr("name");
         var display_val = jQuery(this).bootstrapSwitch('state');
         var ajax_option = {

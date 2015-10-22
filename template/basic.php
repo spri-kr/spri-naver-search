@@ -1,4 +1,7 @@
 <?php
+/*
+ * This file is basic template for display articles
+ * */
 
 $temp_date = date( 'Y년 m월 d일', strtotime( $item->pubDate ) );
 

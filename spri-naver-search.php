@@ -24,11 +24,11 @@ class spri_naver_news {
 		// database table names
 		global $wpdb;
 		$this->article_table = $wpdb->prefix . "spri_naver_news_article";
-		$this->query_table = $wpdb->prefix . "spri_naver_news_query";
-		$this->status_table = $wpdb->prefix . "spri_naver_news_status";
+		$this->query_table   = $wpdb->prefix . "spri_naver_news_query";
+		$this->status_table  = $wpdb->prefix . "spri_naver_news_status";
 
 		// shortcodes
-		add_shortcode( 'spri-naver-search', array( $this, 'naver_search' ) );
+		add_shortcode( 'spri-naver-search', array( $this, 'shortcode_naver_search' ) );
 
 		// actions
 		add_action( 'spri_naver_cron_job', array( $this, 'do_cron_job' ) );
@@ -54,21 +54,23 @@ class spri_naver_news {
 		$this->options = get_option( 'spri_naver_option_name' );
 
 		//widget scripts load
-		add_action('wp_enqueue_scripts',array($this, 'register_widget_scripts'));
+		add_action( 'wp_enqueue_scripts', array( $this, 'register_widget_scripts' ) );
 
 		// widget create
-		add_action('widgets_init', array($this, 'register_article_widget' ));
+		add_action( 'widgets_init', array( $this, 'register_article_widget' ) );
 	}
 
+	/**
+	 * run at plugin activation
+	 */
 	function activation() {
 		$this->set_up_database();
 		$this->cron_job_registration();
 	}
 
-	function deactivation() {
-		$this->cron_job_clear();
-	}
-
+	/**
+	 * setting up database at activation time
+	 */
 	function set_up_database() {
 		global $wpdb;
 
@@ -126,17 +128,30 @@ UNIQUE (article_id)
 		dbDelta( $sql3 );
 	}
 
+	/**
+	 * register wp_cron jop at activation time
+	 */
 	function cron_job_registration() {
 		wp_schedule_event( time(), 'twicedaily', 'spri_naver_cron_job' );
 	}
 
+	/**
+	 * run at plugin deactivation
+	 */
+	function deactivation() {
+		$this->cron_job_clear();
+	}
+
+	/**
+	 * clear wp_cron job at deactivation time
+	 */
 	function cron_job_clear() {
 		wp_clear_scheduled_hook( 'spri_naver_cron_job' );
 	}
 
 	/**
-	 *cron function for crawling.
-	 *Crawl the naver news with query and insert result into database
+	 * cron function for crawling.
+	 * Crawl the naver news with query and insert result into database
 	 */
 	public function do_cron_job() {
 		global $wpdb;
@@ -151,6 +166,148 @@ UNIQUE (article_id)
 
 	}
 
+	/**
+	 * Simple function that getting query list stored via shortcode.
+	 *
+	 * @return mixed query list. wpdb result object
+	 */
+	function get_query_list() {
+		global $wpdb;
+
+		return $wpdb->get_results( "
+		SELECT * FROM wp_spri_naver_news_query
+		" );
+	}
+
+	/**
+	 * Maintenance status
+	 * query have this status are already crawled past articles.
+	 * So crawl daily updates after whole article crawl.
+	 *
+	 * @return q wpdb_object
+	 */
+	function maintenance_crawl( $q ) {
+		global $wpdb;
+
+		// set attrs for crawling
+		$attr = array(
+			'key'     => $this->options['api_key'],
+			'query'   => $q->query,
+			'target'  => 'news',
+			'display' => '100',
+			'start'   => '1',
+			'sort'    => 'sim',
+		);
+
+		$xml = $this->get_naver_xml( $attr );
+
+		$total_page = $this->calculate_total_page( $xml );
+
+		$articles = $this->get_search_results_from_naver( $attr, $total_page );
+
+		$this->insert_articles( $q->id, $articles );
+	}
+
+	/**
+	 * @param $attr receive via shortcode attributes
+	 *
+	 * @return SimpleXMLElement RSS feed
+	 */
+	public function get_naver_xml( $attr ) {
+
+		//Get xml content
+		$url = "http://openapi.naver.com/search?";
+		$url .= http_build_query( $attr );
+
+		$xml = simplexml_load_string( file_get_contents( $url ) );
+
+		return $xml;
+	}
+
+	/**
+	 * @param $xml RSS feed
+	 *
+	 * @return float|int count of feed's article number
+	 */
+	protected function calculate_total_page( $xml ) {
+		$total_page = $xml->channel->total / 100;
+		if ( $total_page > 10 ) {
+			$total_page = 10;
+		}
+
+		return $total_page;
+	}
+
+	/**
+	 * get all articles from naver search results
+	 *
+	 * @param $attr attributes getting via shortcode
+	 * @param $total_page number of total page of naver news feed.
+	 *
+	 * @return array extracted article
+	 */
+	protected function get_search_results_from_naver( $attr, $total_page ) {
+		$attr['start'] = 1;
+		$articles      = array();
+		for ( $i = 1; $i <= $total_page; $i ++ ) {
+			$xml           = $this->get_naver_xml( $attr );
+			$articles      = $this->extract_articles_from_xml( $xml, $articles );
+			$attr['start'] = $attr['display'] * $i;
+		}
+
+		return $articles;
+	}
+
+	/**
+	 * @param $xml xml file from get_naver_xml
+	 * @param array $articles array contains or be contains articles
+	 *
+	 * @return array associated array
+	 */
+	protected function extract_articles_from_xml( $xml, $articles = array() ) {
+
+		foreach ( $xml->channel->item as $article ) {
+			if ( $article->originallink == "" ) {
+				$article->originallink = $article->link;
+			}
+			array_push( $articles,
+				$article
+			);
+		}
+
+		return $articles;
+	}
+
+	/**
+	 * @param $q_id query id on database
+	 * @param $articles articles be inserted into DB
+	 */
+	protected function insert_articles( $q_id, $articles ) {
+		global $wpdb;
+
+		foreach ( $articles as $article ) {
+			$pubDate = date_create_from_format( 'D, d M Y H:i:s T', $article->pubDate );
+
+			$insert_sql = $wpdb->prepare( "
+				INSERT INTO $this->article_table
+				(title, originallink, link, description, pubDate, query_id, uniqueness_hash)
+				VALUES
+				(%s, %s, %s, %s, %s, %d, SHA1(%s));",
+				array(
+					$article->title,
+					$article->originallink,
+					$article->link,
+					$article->description,
+					$pubDate->format( 'Y-m-d H:i:s' ),
+					(int) $q_id,
+					$article->title . (string) $q_id . $article->pubDate,
+				)
+			);
+
+			$wpdb->query( $insert_sql );
+		}
+	}
+
 	function add_custom_cron_interval( $schedules ) {
 		// $schedules stores all recurrence schedules within WordPress
 		$schedules['ten_seconds'] = array(
@@ -162,21 +319,22 @@ UNIQUE (article_id)
 		return (array) $schedules;
 	}
 
-	function register_widget_scripts(){
+	function register_widget_scripts() {
 		wp_enqueue_script(
 			'spri-naver-widget-slide-script',
-			plugins_url('/js/slide.js', __FILE__),
+			plugins_url( '/js/slide.js', __FILE__ ),
 			array( 'jquery' )
 		);
 
 		wp_enqueue_script(
 			'spri-naver-owl-slider-script',
-			plugins_url('/lib/owl-carousel/owl.carousel.min.js', __FILE__),
+			plugins_url( '/lib/owl-carousel/owl.carousel.min.js', __FILE__ ),
 			array( 'jquery' )
 		);
 
-		wp_register_style('spri-naver-widget-style', plugins_url('/css/style.css', __FILE__));
-		wp_register_style('spri-naver-widget-slider-style', plugins_url('/lib/owl-carousel/owl.carousel.css', __FILE__));
+		wp_register_style( 'spri-naver-widget-style', plugins_url( '/css/style.css', __FILE__ ) );
+		wp_register_style( 'spri-naver-widget-slider-style',
+			plugins_url( '/lib/owl-carousel/owl.carousel.css', __FILE__ ) );
 
 		wp_enqueue_style( 'spri-naver-widget-style' );
 		wp_enqueue_style( 'spri-naver-widget-slider-style' );
@@ -187,7 +345,7 @@ UNIQUE (article_id)
 	 *
 	 * @return string html snippet has results
 	 */
-	public function naver_search( $attr ) {
+	public function shortcode_naver_search( $attr ) {
 
 		// Set default value
 		$attr = shortcode_atts( array(
@@ -217,7 +375,7 @@ UNIQUE (article_id)
 			$q_id = $this->get_query_id_from_query( $attr['query'] );
 
 			// Check page parameter and Get article by parameter
-			$articles = $this->retrive_articles( $q_id );
+			$articles = $this->retrieve_articles( $q_id );
 
 			// building html part
 			$html = $this->generate_year_month_navigation( $q_id );
@@ -225,8 +383,7 @@ UNIQUE (article_id)
 
 		} else {
 			// get articles from naver search api
-
-			$xml = $this->get_naver_xml( $attr );
+			$xml      = $this->get_naver_xml( $attr );
 			$articles = $this->extract_articles_from_xml( $xml );
 
 			// sort articles date order
@@ -247,97 +404,9 @@ UNIQUE (article_id)
 	}
 
 	/**
-	 * Maintenance status
-	 * query have this status are already crawled past articles.
-	 * So crawl daily updates after whole article crawl.
-	 */
-	function maintenance_crawl( $q ) {
-		global $wpdb;
-
-		// set attrs for crawling
-		$attr = array(
-			'key'     => $this->options['api_key'],
-			'query'   => $q->query,
-			'target'  => 'news',
-			'display' => '100',
-			'start'   => '1',
-			'sort'    => 'sim',
-		);
-
-		$xml = $this->get_naver_xml( $attr );
-
-		$total_page = $this->calculate_total_page( $xml );
-
-		$articles = $this->get_search_results_from_naver( $attr, $total_page );
-
-		$this->insert_articles( $q->id, $articles );
-	}
-
-	function get_query_list() {
-		global $wpdb;
-
-		return $wpdb->get_results( "
-		SELECT * FROM wp_spri_naver_news_query
-		" );
-	}
-
-	/**
-	 * New status
-	 * new to crawl. query have this status does not have any articles on database
-	 */
-	function new_crawl( $attr ) {
-		global $wpdb;
-		//$wpdb->show_errors();
-
-		// set attrs for crawling
-		$attr['display'] = '100';
-		$attr['sort'] = 'sim';
-
-		$query_id = $this->get_new_query_id( $attr );
-
-		$xml = $this->get_naver_xml( $attr );
-
-		$total_page = $this->calculate_total_page( $xml );
-
-		$articles = $this->get_search_results_from_naver( $attr, $total_page );
-
-		$this->insert_articles( $query_id->id, $articles );
-	}
-
-	/**
-	 * @param $q
-	 * @param $articles
-	 * @param $wpdb
-	 */
-	protected function insert_articles( $q_id, $articles ) {
-		global $wpdb;
-
-		foreach ( $articles as $article ) {
-			$pubDate = date_create_from_format( 'D, d M Y H:i:s T', $article->pubDate );
-
-			$insert_sql = $wpdb->prepare( "
-				INSERT INTO $this->article_table
-				(title, originallink, link, description, pubDate, query_id, uniqueness_hash)
-				VALUES
-				(%s, %s, %s, %s, %s, %d, SHA1(%s));",
-				array(
-					$article->title,
-					$article->originallink,
-					$article->link,
-					$article->description,
-					$pubDate->format( 'Y-m-d H:i:s' ),
-					(int) $q_id,
-					$article->title . (string) $q_id . $article->pubDate,
-				)
-			);
-
-			$wpdb->query( $insert_sql );
-		}
-	}
-
-	/**
+	 *check if query string exist
 	 *
-	 * @param $q
+	 * @param $q query string
 	 *
 	 * @return mixed return 0 or 1
 	 */
@@ -345,7 +414,7 @@ UNIQUE (article_id)
 		global $wpdb;
 
 		$q_hash = sha1( $q );
-		$sql = "select exists
+		$sql    = "select exists
 					(select * from
 					wp_spri_naver_news_query
 					where query_hash = '$q_hash') AS exist";
@@ -353,37 +422,6 @@ UNIQUE (article_id)
 		$r = $wpdb->get_row( $sql );
 
 		return $r->exist;
-	}
-
-	public function get_naver_xml( $attr ) {
-
-		//Get xml content
-		$url = "http://openapi.naver.com/search?";
-		$url .= http_build_query( $attr );
-
-		$xml = simplexml_load_string( file_get_contents( $url ) );
-
-		return $xml;
-	}
-
-	/**
-	 * get all articles from naver search results
-	 *
-	 * @param $attr
-	 * @param $total_page
-	 *
-	 * @return array
-	 */
-	protected function get_search_results_from_naver( $attr, $total_page ) {
-		$attr['start'] = 1;
-		$articles = array();
-		for ( $i = 1; $i <= $total_page; $i ++ ) {
-			$xml = $this->get_naver_xml( $attr );
-			$articles = $this->extract_articles_from_xml( $xml, $articles );
-			$attr['start'] = $attr['display'] * $i;
-		}
-
-		return $articles;
 	}
 
 	/**
@@ -406,7 +444,49 @@ UNIQUE (article_id)
 	}
 
 	/**
-	 * @param $q
+	 * New status
+	 * new to crawl. query have this status does not have any articles on database
+	 */
+	function new_crawl( $attr ) {
+		global $wpdb;
+		//$wpdb->show_errors();
+
+		// set attrs for crawling
+		$attr['display'] = '100';
+		$attr['sort']    = 'sim';
+
+		$query_id = $this->get_new_query_id( $attr );
+
+		$xml = $this->get_naver_xml( $attr );
+
+		$total_page = $this->calculate_total_page( $xml );
+
+		$articles = $this->get_search_results_from_naver( $attr, $total_page );
+
+		$this->insert_articles( $query_id->id, $articles );
+	}
+
+	/**
+	 * get query's id via query string hash
+	 *
+	 * @param $attr shortcode attr
+	 * @param $wpdb
+	 *
+	 * @return mixed
+	 */
+	protected function get_new_query_id( $attr ) {
+		global $wpdb;
+		$q_hash       = sha1( $attr['query'] );
+		$query_id_sql = "select id from $this->query_table where query_hash = '$q_hash';";
+		$query_id     = $wpdb->get_row( $query_id_sql );
+
+		return $query_id;
+	}
+
+	/**
+	 * get query id by query string
+	 *
+	 * @param $q string
 	 *
 	 * @return int $id query id from query string
 	 */
@@ -414,7 +494,7 @@ UNIQUE (article_id)
 		global $wpdb;
 
 		//escaping quotes from query string
-		$q = addslashes( $q );
+		$q   = addslashes( $q );
 		$sql = <<<SQL
 SELECT * FROM $this->query_table WHERE query = '{$q}';
 SQL;
@@ -426,18 +506,25 @@ SQL;
 		return (int) $query_id->id;
 	}
 
-	protected function retrive_articles( $q_id ) {
+	/**
+	 * get article list on shortcode call. it retrieve articles by url parameter 'ym'
+	 * if 'ym' parameter does not exist it getting latest articles
+	 *
+	 * @param $q_id int query id
+	 *
+	 * @return mixed
+	 */
+	protected function retrieve_articles( $q_id ) {
 		global $wpdb;
 		global $wp_query;
 
 		//TODO sanitize $ym
 
-
 		// Get year and month from GET param or db
 		if ( isset( $wp_query->query_vars['ym'] ) ) {
 			$ym = $wp_query->query_vars['ym'];
 		} else {
-			$ym_sql = "select date_format(pubDate, '%Y%m') AS ym
+			$ym_sql    = "select date_format(pubDate, '%Y%m') AS ym
 				from {$this->article_table}
 				where query_id = {$q_id}
 				and id not in (
@@ -447,7 +534,7 @@ SQL;
 				)
 				order by ym desc";
 			$ym_result = $wpdb->get_row( $ym_sql );
-			$ym = (string) $ym_result->ym;
+			$ym        = (string) $ym_result->ym;
 		}
 
 		// Get articles base on ym
@@ -467,30 +554,10 @@ SQL;
 		return $articles;
 	}
 
-	function load_css() {
-		$plugin_url = plugin_dir_url( __FILE__ );
-
-		wp_enqueue_style( 'spri-naver-style', $plugin_url . 'css/style.css' );
-	}
-
-	protected function generate_articles_html( $attr, $articles ) {
-
-		$html = "<div class='$attr[class] spri-naver-search pull-left' >";
-
-
-		foreach ( $articles as $item ) {
-			$template = "";
-			require( plugin_dir_path( __FILE__ ) . "template/" . $attr['template'] . ".php" );
-			$html .= $template;
-		}
-
-		$html .= "</div>";
-
-		return $html;
-	}
-
 	/**
 	 * @param int $q_id query id from database
+	 *
+	 * @return string return html snippet that display year and month selector
 	 */
 	private function generate_year_month_navigation( $q_id ) {
 
@@ -609,12 +676,13 @@ SCRIPTS;
 		return ( $html );
 	}
 
-	function url_query_filter( $q ) {
-		$q[] = 'ym';
-
-		return $q;
-	}
-
+	/**
+	 * get year and month list of requested query's article
+	 *
+	 * @param $q_id int query id on DB
+	 *
+	 * @return mixed wpdb result obj
+	 */
 	private function get_year_month_data_by_query_id( $q_id ) {
 
 		global $wpdb;
@@ -639,6 +707,65 @@ SQL;
 		return $wpdb->get_results( $sql );
 	}
 
+	/**
+	 *
+	 * return html snippet based on 'template'
+	 *
+	 * @param $attr
+	 * @param $articles
+	 *
+	 * @return string
+	 */
+	protected function generate_articles_html( $attr, $articles ) {
+
+		$html = "<div class='$attr[class] spri-naver-search pull-left' >";
+
+
+		foreach ( $articles as $item ) {
+			$template = "";
+			require( plugin_dir_path( __FILE__ ) . "template/" . $attr['template'] . ".php" );
+			$html .= $template;
+		}
+
+		$html .= "</div>";
+
+		return $html;
+	}
+
+	private function add_naver_bi() {
+
+		$path = plugins_url( "/img/powered_by_NAVER.png", __FILE__ );
+		$bi   = <<< BIHTML
+<a href="http://developer.naver.com/wiki/pages/OpenAPI" target="_blank" class="pull-right naver-bi">
+    <img src="{$path}" alt="NAVER OpenAPI" />
+</a>
+BIHTML;
+
+		return $bi;
+	}
+
+	/**
+	 * run at wp_head action
+	 */
+	function load_css() {
+		$plugin_url = plugin_dir_url( __FILE__ );
+
+		wp_enqueue_style( 'spri-naver-style', $plugin_url . 'css/style.css' );
+	}
+
+	/**
+	 * add new url param filter on wordpress valid filter list
+	 *
+	 * @param $q
+	 *
+	 * @return array
+	 */
+	function url_query_filter( $q ) {
+		$q[] = 'ym';
+
+		return $q;
+	}
+
 	function add_plugin_setting_link( $links ) {
 		$setting_link = '<a href="' . admin_url( 'options-general.php?page=spri-naver-search' ) . '">' . __( Settings ) . '</a>';
 
@@ -646,62 +773,7 @@ SQL;
 	}
 
 	function register_article_widget() {
-		register_widget('spri_naver_article_widget');
-	}
-
-	protected function extract_articles_from_xml( $xml, $articles = array() ) {
-
-		foreach ( $xml->channel->item as $article ) {
-			if ( $article->originallink == "" ) {
-				$article->originallink = $article->link;
-			}
-			array_push( $articles,
-				$article
-			);
-		}
-
-		return $articles;
-	}
-
-	/**
-	 * @param $xml
-	 *
-	 * @return float|int
-	 */
-	protected function calculate_total_page( $xml ) {
-		$total_page = $xml->channel->total / 100;
-		if ( $total_page > 10 ) {
-			$total_page = 10;
-		}
-
-		return $total_page;
-	}
-
-	/**
-	 * @param $attr
-	 * @param $wpdb
-	 *
-	 * @return mixed
-	 */
-	protected function get_new_query_id( $attr ) {
-		global $wpdb;
-		$q_hash = sha1( $attr['query'] );
-		$query_id_sql = "select id from $this->query_table where query_hash = '$q_hash';";
-		$query_id = $wpdb->get_row( $query_id_sql );
-
-		return $query_id;
-	}
-
-	private function add_naver_bi() {
-
-		$path = plugins_url("/img/powered_by_NAVER.png",__FILE__);
-		$bi = <<< BIHTML
-<a href="http://developer.naver.com/wiki/pages/OpenAPI" target="_blank" class="pull-right naver-bi">
-    <img src="{$path}" alt="NAVER OpenAPI" />
-</a>
-BIHTML;
-
-		return $bi;
+		register_widget( 'spri_naver_article_widget' );
 	}
 
 }

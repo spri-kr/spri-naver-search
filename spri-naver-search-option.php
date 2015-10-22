@@ -98,6 +98,7 @@ class spri_naver_option {
         $q_list = $wpdb->get_results( "Select query, id from {$this->query_table}" );
         ?>
 
+        <!-- Article template uesd at js/scripts.js -->
         <script id="article_template" type="text/html">
             <div class='item item-{{id}} col-xs-3'>
                 <h4 class='article-title'>{{{title}}}</h4>
