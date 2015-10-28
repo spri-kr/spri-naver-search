@@ -54,6 +54,7 @@ you can hide some articles from `SPRI Naver Search > Article Manage` menu.
 You can display your search results on widget. At widget option, you can select query that set shortcode has `is_crawl=y` option.
 
 ### Project structure
+```
 ├─css                    
 ├─img                    
 ├─js                     
@@ -62,3 +63,4 @@ You can display your search results on widget. At widget option, you can select 
 │  ├─bootstrap-switch    
 │  └─owl-carousel        
 └─template              : templates for displaying articles
+```
