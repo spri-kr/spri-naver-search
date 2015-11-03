@@ -6,7 +6,7 @@
 
 위와 같이 숏코드를 사용하여 뉴스 검색결과를 포스트에 표시하게 할 수 있습니다. 홑따옴표(`'`)를 사용해서  `query='"결과에 반드시 포함"'` 처럼 검색어를 작성할 수 있습니다. 이때 쌍따옴표를 홑따옴표로 감싸야 제대로 적용이 되며, 반대의 경우에는 적용이 되지 않습니다.
 
-이러한 상세 조건 검색에 대한 규칙은 [참조][conditional search] 페이지에서 확인할 수 있습니다.
+이러한 상세 조건 검색에 대한 규칙은 [conditional search](https://help.naver.com/support/contents/contents.nhn?serviceNo=606&categoryNo=1911) 페이지에서 확인할 수 있습니다.
 
 ### 최초 설정
 
@@ -44,14 +44,17 @@
 위와같이 년도 및 월별로 쿼리의 해당하는 뉴스 검색 결과를 볼 수 있습니다.
 
 ![Imgur](http://i.imgur.com/A4vrCe7.jpg)
+
 크롤링된 뉴스 기사는, `SPRI Naver Search > Article Manage` 메뉴에서 관리할 수 있습니다.
 
 ![Imgur](http://i.imgur.com/qoHrMoy.jpg)
+
 이처럼 숏코드에 크롤링하게 지정해둔 쿼리들을 볼 수 있습니다. 오른쪽의 `조회`를 누를면 해당 검색어로 가져와서 보여주는 뉴스들을 보여주게됩니다.
 
 ![Imgur](http://i.imgur.com/RQhWkkH.jpg)
 
 ![Imgur](http://i.imgur.com/RVtv4yF.jpg)
+
 가져온 뉴스중에서 위젯이나 숏코드상에서 숨기고 싶은 뉴스가 있다면, On/Off 슬라이드 버튼을 클릭하여 상태를 바꾸면 됩니다. 따로 저장할 필요 없이, Off 상태가 되면 바로 숨겨지게 됩니다.
 
 #### 위젯
@@ -59,9 +62,11 @@
 `SPRI Naver Article Widget`을 추가하여 뉴스를 슬라이드쇼로 위젯에서 보여줄 수 있습니다.
 
 ![Imgur](http://i.imgur.com/9kJvszy.jpg)
+
 위젯에서 설정가능한 옵션은, `Query`와 `Number`입니다. Query는 크롤링된 검색어들을 보여줍니다. Number로 몇개의 기사를 보여줄지 결정 할 수 있습니다.
 
 ![Imgur](http://i.imgur.com/MtMLzuj.jpg)
+
 위젯은 위와같이 보이게 됩니다.
 
 
