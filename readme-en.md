@@ -18,6 +18,64 @@ All of the conditional search rules are [HERE][conditional search]
 
 after plugin activation, you should fill out API key option value at `General>SPRI Naver Search`  
 
+### How to use
+
+#### Configuration
+
+![Imgur](http://i.imgur.com/7gz2boa.jpg)
+
+Go to `SPRI Naver Search` at admin dashboard. 
+
+![Imgur](http://i.imgur.com/yd5xWDK.jpg)
+
+put your search api key issued at [Naver developer center](http://developer.naver.com/wiki/pages/SrchAPI).
+
+#### Shortcode
+
+![Imgur](http://i.imgur.com/EiFKixz.jpg)
+
+![Imgur](http://i.imgur.com/47bZcCa.jpg)
+
+Now you can use shortcode on your post. you can set parameters at shortcode. if you set parameter `is_crawl` to `y`, you can manage result articles at `Article manage` menu and use articles at slide widget.
+
+![Imgur](http://i.imgur.com/xqLumh4.jpg)
+
+![Imgur](http://i.imgur.com/NgXWtqg.jpg)
+
+first one shows when `is_crawl` set to `y`. second one shows `is_crawl` not set by user so set to default value `n`. if you set `is_crawl` to `y`, you can lookup articles by year and month. If you not set `is_crawl`, only `number` of articles displayed by shortcode. 
+
+![Imgur](http://i.imgur.com/9lQQqHs.jpg)
+![Imgur](http://i.imgur.com/YJNLsVl.jpg)
+
+you can lookup articles by year and month dropdown selector.
+
+![Imgur](http://i.imgur.com/A4vrCe7.jpg)
+
+you can manage crawled articles at `SPRI Naver Search > Article Manage` menu.
+
+![Imgur](http://i.imgur.com/qoHrMoy.jpg)
+
+you can see queries set by shortcode with `is_crawl` set to y. click `조회` to show article by selected query.
+
+![Imgur](http://i.imgur.com/RQhWkkH.jpg)
+
+![Imgur](http://i.imgur.com/RVtv4yF.jpg)
+
+if you want to hide a article at shortcode content or slide widget, you can toggle On/Off slide button to hide or show the article. This work does not need save button. 
+
+#### Widget
+
+You can add `SPRI Naver Article Widget` to show news articles on slide.
+
+![Imgur](http://i.imgur.com/9kJvszy.jpg)
+
+Widget configuration has two option `Query` and `Number`. `Query` shows queries from shortcode set `is_crawl` to `y`. `Number` determine how many articles showed up slide widget.
+
+![Imgur](http://i.imgur.com/MtMLzuj.jpg)
+
+configured widget look like this. 
+
+
 ### available attr in shortcode
 You can find attr reference from [Reference]
 

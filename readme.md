@@ -22,7 +22,7 @@
 
 ![Imgur](http://i.imgur.com/yd5xWDK.jpg)
 
-네이버 개발자 센터에서 발급받은 검색 API키를 입력후 저장합니다.
+[네이버 개발자 센터](http://developer.naver.com/wiki/pages/SrchAPI)에서 발급받은 검색 API키를 입력후 저장합니다.
 
 #### 숏코드
 
@@ -30,13 +30,13 @@
 
 ![Imgur](http://i.imgur.com/47bZcCa.jpg)
 
-이제 숏코드를 사용할 수 있습니다. 위와 같이 숏코드를 파라메터를 지정할 수 있습니다. 두번째 사용방법과 같이 is_crawl 옵션을 y로 줄 경우, 대시보드에서 관리할 수 있으며, 위젯에서 사용할 수 있습니다.
+이제 숏코드를 사용할 수 있습니다. 위와 같이 숏코드를 파라메터를 지정할 수 있습니다. 두번째 사용방법과 같이 `is_crawl` 옵션을 `y`로 줄 경우, 대시보드에서 관리할 수 있으며, 위젯에서 사용할 수 있습니다.
 
 ![Imgur](http://i.imgur.com/xqLumh4.jpg)
 
 ![Imgur](http://i.imgur.com/NgXWtqg.jpg)
 
-위 화면은 is_crawl이 y일때입니다. 아래 화면은 지정하지 않았을때 기본값인 n으로 설정된 모습니다. 크롤링을 할 경우, 년월로 조회를 할 수 있습니다. 하지 않을경우에는 숏코드에 지정된 숫자만큼만 표시하게 됩니다.
+위 화면은 `is_crawl`이 `y`일때입니다. 아래 화면은 지정하지 않았을때 기본값인 n으로 설정된 모습입니다. 크롤링을 할 경우, 년월로 조회를 할 수 있습니다. 하지 않을경우에는 숏코드에 지정된 숫자만큼만 표시하게 됩니다.
 
 ![Imgur](http://i.imgur.com/9lQQqHs.jpg)
 ![Imgur](http://i.imgur.com/YJNLsVl.jpg)
